@@ -18,6 +18,7 @@ model User {
   accounts      Account[]
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
+  website       Website[]
 
   @@index([email])
 }
@@ -44,4 +45,17 @@ model EmailVerificationToken {
 
   @@index([token])
   @@index([email])
+}
+
+model Website {
+  id        String   @id @default(cuid())
+  url       String
+  name      String?
+  isActive  Boolean  @default(true)
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
 }
