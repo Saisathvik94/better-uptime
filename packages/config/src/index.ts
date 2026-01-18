@@ -65,10 +65,10 @@ export const GITHUB_CLIENT_SECRET = getEnvVar("CLIENT_SECRET_GITHUB");
 // Resend (Email)
 export const RESEND_API_KEY = getEnvVar("RESEND_API_KEY");
 
-// Redis
-export const REDIS_USERNAME = getEnvVar("REDIS_USERNAME");
-export const REDIS_PASSWORD = getEnvVar("REDIS_PASSWORD");
-export const REDIS_HOST = getEnvVar("REDIS_HOST");
+// Redis (optional - only required when using Redis features)
+export const REDIS_USERNAME = getEnvVar("REDIS_USERNAME", false) || "default";
+export const REDIS_PASSWORD = getEnvVar("REDIS_PASSWORD", false) || "";
+export const REDIS_HOST = getEnvVar("REDIS_HOST", false) || "localhost";
 export const REDIS_PORT = getEnvVar("REDIS_PORT", false) || "6379";
 
 // Server
