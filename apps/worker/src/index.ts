@@ -1,3 +1,8 @@
+import {
+  recordUptimeEvents,
+  type UptimeEventRecord,
+  type UptimeStatus,
+} from "@repo/clickhouse";
 import { REGION_ID, WORKER_ID } from "@repo/config";
 import { xAckBulk, xReadGroup } from "@repo/streams";
 import axios from "axios";
@@ -11,25 +16,34 @@ if (!REGION_ID || !WORKER_ID) {
   process.exit(1);
 }
 
-async function processWebsite(url: string, websiteId: string) {
+async function checkWebsite(
+  url: string,
+  websiteId: string,
+): Promise<UptimeEventRecord> {
   const startTime = Date.now();
+  let status: UptimeStatus = "UP";
+  let responseTimeMs: number | undefined;
+  const checkedAt = new Date();
 
   try {
-    await axios.get(url);
-    const endTime = Date.now();
-    const responseTime = endTime - startTime;
-    // TODO: Store to ClickHouse timeseries DB
+    await axios.get(url, {
+      timeout: 10_000,
+      maxRedirects: 5,
+      validateStatus: () => true,
+    });
 
-    // Data to store: response_time_ms, status: "UP", region_id, website_id
-    console.log(
-      `Website ${websiteId} is UP - Response time: ${responseTime}ms`,
-    );
+    responseTimeMs = Date.now() - startTime;
   } catch {
-    // TODO: Store to ClickHouse timeseries DB
-
-    // Data to store: status: "DOWN", region_id, website_id
-    console.log(`Website ${websiteId} is DOWN`);
+    status = "DOWN";
   }
+
+  return {
+    websiteId,
+    regionId: REGION_ID,
+    status,
+    responseTimeMs,
+    checkedAt,
+  };
 }
 
 async function startWorker() {
@@ -42,24 +56,38 @@ async function startWorker() {
 
     // Process messages if any were received
     if (response.length > 0) {
-      for (const message of response) {
-        // Process the website and store the result in the DB
-        const url = message.event.url;
-        const websiteId = message.event.id;
+      const results = await Promise.allSettled(
+        response.map((message) =>
+          checkWebsite(message.event.url, message.event.id),
+        ),
+      );
 
-        await processWebsite(url, websiteId);
-
-        // TODO: It should be routed through a queue as a bulk DB request
-        console.log("Processing message:", message.id, message.event);
-
-        // TODO: Process the message (check website, store result in DB)
+      const successful: { streamId: string; event: UptimeEventRecord }[] = [];
+      for (let i = 0; i < results.length; i++) {
+        const result = results[i];
+        const message = response[i];
+        if (!message) continue;
+        if (result?.status === "fulfilled") {
+          successful.push({ streamId: message.id, event: result.value });
+        } else {
+          console.error(
+            `[Worker] Failed to check website for message ${message.id}`,
+            result?.reason,
+          );
+        }
       }
 
-      // Ack back to the queue that this event has been processed
-      await xAckBulk({
-        consumerGroup: REGION_ID,
-        eventIds: response.map(({ id }) => id),
-      });
+      try {
+        await recordUptimeEvents(successful.map((s) => s.event));
+
+        // Ack back to the queue only after persistence succeeds
+        await xAckBulk({
+          consumerGroup: REGION_ID,
+          eventIds: successful.map((s) => s.streamId),
+        });
+      } catch (error) {
+        console.error("[Worker] Failed to persist uptime batch", error);
+      }
     }
 
     // Small delay to prevent tight loop when no messages
