@@ -1,2 +1,4 @@
-<img width="1512" height="736" alt="image" src="https://github.com/user-attachments/assets/5852b566-d38f-499f-9890-00dfb5534bb5" />
-visit the live-interactive architecture at : https://excalidraw.com/#json=Z7TZXnfjNhllyctmt6LHH,Mjnlbgsi-O2duRXZL5vVQQ
+<img width="1634" height="735" alt="image" src="https://github.com/user-attachments/assets/41b53477-dc73-497b-ad50-60efa2ffb12f" />
+
+view the full in-detailed architecture at : 
+https://excalidraw.com/#json=10MK6ZkcCFbxAVLMBwLKa,jWBUnZGQSGjJJ1fYNKfwVA
