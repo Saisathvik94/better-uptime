@@ -14,8 +14,14 @@ export default function slugify(str: string) {
     .replace(/\-\-+/g, "-"); // Replace multiple - with single -
 }
 
-function CustomHeading(props: any) {
-  const slug = slugify(props.children);
+interface CustomHeadingProps {
+  level: 1 | 2 | 3 | 4 | 5 | 6;
+  children: React.ReactNode;
+  className?: string;
+}
+
+function CustomHeading(props: CustomHeadingProps) {
+  const slug = slugify(String(props.children));
   return React.createElement(
     `h${props.level}`,
     {
@@ -78,24 +84,35 @@ export const Bold = (props: React.HTMLAttributes<HTMLSpanElement>) => (
   <span className="font-semibold text-gray-900 dark:text-gray-50" {...props} />
 );
 
-export function CustomLink(props: any) {
-  const href = props.href;
+interface CustomLinkProps extends React.AnchorHTMLAttributes<HTMLAnchorElement> {
+  href: string;
+  children?: React.ReactNode;
+}
+
+export function CustomLink(props: CustomLinkProps) {
+  const { href, children, ...restProps } = props;
   const style =
     "text-indigo-600 font-medium hover:text-indigo-500 dark:text-indigo-500 hover:dark:text-indigo-400";
   if (href.startsWith("/")) {
     return (
-      <Link className={style} href={href} {...props}>
-        {props.children}
+      <Link className={style} href={href} {...restProps}>
+        {children}
       </Link>
     );
   }
 
   if (href.startsWith("#")) {
-    return <a {...props} className={style} />;
+    return <a {...restProps} href={href} className={style} />;
   }
 
   return (
-    <a className={style} target="_blank" rel="noopener noreferrer" {...props} />
+    <a
+      className={style}
+      target="_blank"
+      rel="noopener noreferrer"
+      href={href}
+      {...restProps}
+    />
   );
 }
 
@@ -106,7 +123,7 @@ export const ChangelogEntry = ({
 }: {
   version: string;
   date: string;
-  children: any;
+  children: React.ReactNode;
 }) => (
   <div className="relative my-20 flex flex-col justify-center gap-x-14 border-b border-gray-200 md:flex-row dark:border-gray-800">
     <div className="mb-4 md:mb-10 md:w-1/3">

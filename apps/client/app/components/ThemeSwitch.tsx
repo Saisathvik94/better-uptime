@@ -63,7 +63,10 @@ const ThemeSwitch = () => {
   const { theme, setTheme } = useTheme();
 
   useEffect(() => {
-    setMounted(true);
+    // Use requestAnimationFrame to avoid synchronous setState in effect
+    requestAnimationFrame(() => {
+      setMounted(true);
+    });
   }, []);
 
   if (!mounted) {
