@@ -8,6 +8,7 @@
     "start": "bun run src/index.ts"
   },
   "dependencies": {
+    "@repo/clickhouse": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/streams": "workspace:*",
     "axios": "^1.13.2"

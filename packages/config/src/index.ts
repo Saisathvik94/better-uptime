@@ -71,6 +71,17 @@ export const REDIS_PASSWORD = getEnvVar("REDIS_PASSWORD", false) || "";
 export const REDIS_HOST = getEnvVar("REDIS_HOST", false) || "localhost";
 export const REDIS_PORT = getEnvVar("REDIS_PORT", false) || "6379";
 
+// ClickHouse (optional - only required when using ClickHouse features)
+export const CLICKHOUSE_URL = getEnvVar("CLICKHOUSE_URL", false) || "";
+export const CLICKHOUSE_USERNAME =
+  getEnvVar("CLICKHOUSE_USERNAME", false) || "default";
+export const CLICKHOUSE_PASSWORD =
+  getEnvVar("CLICKHOUSE_PASSWORD", false) || "";
+export const CLICKHOUSE_DATABASE =
+  getEnvVar("CLICKHOUSE_DATABASE", false) || "default";
+export const CLICKHOUSE_METRICS_TABLE =
+  getEnvVar("CLICKHOUSE_METRICS_TABLE", false) || "uptime_checks";
+
 // Server
 import { BACKEND_PORT as DEFAULT_BACKEND_PORT } from "./constants.js";
 export const BACKEND_PORT =
@@ -98,4 +109,9 @@ export const env = {
   REGION_ID,
   WORKER_ID,
   STREAM_NAME,
+  CLICKHOUSE_URL,
+  CLICKHOUSE_USERNAME,
+  CLICKHOUSE_PASSWORD,
+  CLICKHOUSE_DATABASE,
+  CLICKHOUSE_METRICS_TABLE,
 } as const;
