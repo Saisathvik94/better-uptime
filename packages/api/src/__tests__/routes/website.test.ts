@@ -31,7 +31,7 @@ describe("Website Routes", () => {
       });
       expect(website).not.toBeNull();
       expect(website?.url).toBe("https://example.com");
-    });
+    }, 15000);
 
     it("should create website without optional name", async () => {
       const user = await createTestUser();

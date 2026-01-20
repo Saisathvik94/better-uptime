@@ -28,6 +28,7 @@
     "typescript": "^5"
   },
   "dependencies": {
+    "@repo/clickhouse": "workspace:*",
     "@repo/config": "workspace:*",
     "@repo/store": "workspace:*",
     "@repo/validators": "workspace:*",

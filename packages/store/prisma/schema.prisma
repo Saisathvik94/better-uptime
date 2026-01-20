@@ -7,6 +7,11 @@ datasource db {
   provider = "postgresql"
 }
 
+enum UptimeStatus {
+  UP
+  DOWN
+}
+
 model User {
   id            String    @id @default(cuid())
   email         String    @unique
@@ -54,8 +59,21 @@ model Website {
   isActive  Boolean  @default(true)
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  latestStatus WebsiteStatusLatest?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@index([userId])
+}
+
+model WebsiteStatusLatest {
+  websiteId      String       @id
+  status         UptimeStatus
+  responseTimeMs Int?
+  regionId       String
+  checkedAt      DateTime
+  updatedAt      DateTime     @updatedAt
+  website        Website      @relation(fields: [websiteId], references: [id], onDelete: Cascade)
+
+  @@index([checkedAt])
 }

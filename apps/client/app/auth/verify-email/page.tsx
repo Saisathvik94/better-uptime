@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { Suspense, useEffect, useState } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
@@ -18,7 +18,7 @@ function getErrorMessage(error: { message: string }): string {
   return error.message;
 }
 
-export default function VerifyEmailPage() {
+function VerifyEmailInner() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const token = searchParams.get("token");
@@ -31,13 +31,15 @@ export default function VerifyEmailPage() {
   const verifyEmail = trpc.user.verifyEmail.useMutation({
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
+      // Dispatch custom event to update navbar
+      window.dispatchEvent(new Event("auth-change"));
       setStatus("success");
       toast.success("Email verified!", {
         description: "Your account is now active.",
       });
-      // Redirect to home after a short delay
+      // Redirect to dashboard after a short delay
       setTimeout(() => {
-        router.push("/");
+        router.push("/dashboard");
       }, 2000);
     },
     onError: (err) => {
@@ -114,7 +116,7 @@ export default function VerifyEmailPage() {
             <div className="space-y-2">
               <h1 className="text-2xl font-semibold">Email verified!</h1>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                Your account is now active. Redirecting you to the homepage...
+                Your account is now active. Redirecting you to the dashboard...
               </p>
             </div>
           </>
@@ -161,5 +163,19 @@ export default function VerifyEmailPage() {
         )}
       </div>
     </div>
+  );
+}
+
+export default function VerifyEmailPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900 dark:border-gray-700 dark:border-t-gray-100" />
+        </div>
+      }
+    >
+      <VerifyEmailInner />
+    </Suspense>
   );
 }

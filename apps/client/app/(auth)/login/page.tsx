@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { Suspense, useState, useEffect } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
@@ -34,7 +34,7 @@ function handleGitHubLogin() {
   window.location.href = `${GITHUB_OAUTH_URL}?${params.toString()}`;
 }
 
-export default function LoginPage() {
+function LoginPageInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [email, setEmail] = useState("");
@@ -58,10 +58,12 @@ export default function LoginPage() {
   const login = trpc.user.login.useMutation({
     onSuccess: (data) => {
       localStorage.setItem("token", data.token);
+      // Dispatch custom event to update navbar
+      window.dispatchEvent(new Event("auth-change"));
       toast.success("Welcome back!", {
         description: "You have been logged in successfully.",
       });
-      router.push("/");
+      router.push("/dashboard");
     },
     onError: (err) => {
       const message = getErrorMessage(err);
@@ -208,5 +210,19 @@ export default function LoginPage() {
         </p>
       </div>
     </div>
+  );
+}
+
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900 dark:border-gray-700 dark:border-t-gray-100" />
+        </div>
+      }
+    >
+      <LoginPageInner />
+    </Suspense>
   );
 }

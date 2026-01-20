@@ -20,6 +20,22 @@ export interface UptimeEventRecord {
 let client: ClickHouseClient | null = null;
 let schemaReadyPromise: Promise<void> | null = null;
 
+const CLICKHOUSE_SCHEMA_TIMEOUT_MS = 10_000;
+// Cap query wait so the status API never feels sluggish
+const CLICKHOUSE_QUERY_TIMEOUT_MS = 3_000;
+
+function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+  const timeout = new Promise<never>((_, reject) => {
+    timeoutId = setTimeout(() => {
+      reject(new Error(`${label} timed out after ${timeoutMs}ms`));
+    }, timeoutMs);
+  });
+  return Promise.race([promise, timeout]).finally(() => {
+    if (timeoutId) clearTimeout(timeoutId);
+  }) as Promise<T>;
+}
+
 function assertConfig() {
   if (!CLICKHOUSE_URL) {
     throw new Error(
@@ -125,4 +141,78 @@ export async function recordUptimeEvents(
 
 export function getClickhouseClient(): ClickHouseClient {
   return getClient();
+}
+
+/**
+ * Query recent status events for a list of website IDs
+ * Returns the most recent status checks (up to limit per website)
+ */
+export async function getRecentStatusEvents(
+  websiteIds: string[],
+  limit: number = 90,
+): Promise<
+  Array<{
+    website_id: string;
+    status: "UP" | "DOWN";
+    checked_at: string;
+    response_time_ms: number | null;
+  }>
+> {
+  if (websiteIds.length === 0) {
+    return [];
+  }
+
+  try {
+    // Keep this bounded so a down ClickHouse doesn't hang the API.
+    await withTimeout(
+      ensureSchema(),
+      CLICKHOUSE_SCHEMA_TIMEOUT_MS,
+      "ClickHouse ensureSchema",
+    );
+  } catch {
+    return [];
+  }
+  const clickhouse = getClient();
+
+  // Escape website IDs for SQL injection safety
+  const escapedIds = websiteIds
+    .map((id) => `'${id.replace(/'/g, "''")}'`)
+    .join(",");
+
+  // Use LIMIT BY to get the most recent events per website
+  // ClickHouse LIMIT BY allows us to get N rows per group efficiently
+  const query = `
+    SELECT 
+      website_id,
+      status,
+      checked_at,
+      response_time_ms
+    FROM ${CLICKHOUSE_METRICS_TABLE}
+    WHERE website_id IN (${escapedIds})
+    ORDER BY website_id, checked_at DESC
+    LIMIT ${limit} BY website_id
+  `;
+
+  let result: Awaited<ReturnType<ClickHouseClient["query"]>>;
+  try {
+    result = await withTimeout(
+      clickhouse.query({
+        query,
+        format: "JSONEachRow",
+      }),
+      CLICKHOUSE_QUERY_TIMEOUT_MS,
+      "ClickHouse query",
+    );
+  } catch {
+    return [];
+  }
+
+  const data = (await result.json()) as Array<{
+    website_id: string;
+    status: "UP" | "DOWN";
+    checked_at: string;
+    response_time_ms: number | null;
+  }>;
+
+  return data;
 }
