@@ -4,12 +4,13 @@
   "type": "module",
   "private": true,
   "scripts": {
-    "dev": "bun run --watch src/index.ts",
+    "worker": "bun run src/index.ts",
     "start": "bun run src/index.ts"
   },
   "dependencies": {
     "@repo/clickhouse": "workspace:*",
     "@repo/config": "workspace:*",
+    "@repo/store": "workspace:*",
     "@repo/streams": "workspace:*",
     "axios": "^1.13.2"
   },

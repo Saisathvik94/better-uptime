@@ -1,10 +1,10 @@
 "use client";
 
-import { useEffect } from "react";
+import { Suspense, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 
-export default function AuthCallbackPage() {
+function AuthCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -45,19 +45,31 @@ export default function AuthCallbackPage() {
 
     // Store the token
     localStorage.setItem("token", token);
+    // Dispatch custom event to update navbar
+    window.dispatchEvent(new Event("auth-change"));
 
     toast.success("Welcome!", {
       description: "You have been signed in with GitHub successfully.",
     });
 
     // Redirect to home after a short delay to show the toast
-    setTimeout(() => router.push("/"), 1500);
+    setTimeout(() => router.push("/dashboard"), 1500);
   }, [searchParams, router]);
 
-  // Only show a loading spinner while processing
+  // Render nothing; the parent Suspense boundary shows the loader.
+  return null;
+}
+
+export default function AuthCallbackPage() {
   return (
-    <div className="flex min-h-screen items-center justify-center p-4">
-      <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900 dark:border-gray-700 dark:border-t-gray-100" />
-    </div>
+    <Suspense
+      fallback={
+        <div className="flex min-h-screen items-center justify-center p-4">
+          <div className="mx-auto h-8 w-8 animate-spin rounded-full border-4 border-gray-300 border-t-gray-900 dark:border-gray-700 dark:border-t-gray-100" />
+        </div>
+      }
+    >
+      <AuthCallbackInner />
+    </Suspense>
   );
 }

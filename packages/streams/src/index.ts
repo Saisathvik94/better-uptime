@@ -76,9 +76,21 @@ async function xAdd({ url, id }: WebsiteEvent) {
 }
 
 export async function xAddBulk(websites: WebsiteEvent[]) {
-  await Promise.all(
-    websites.map((website) => xAdd({ url: website.url, id: website.id })),
-  );
+  // Avoid unbounded Promise.all fan-out (can freeze machines with large website counts).
+  // Use Redis pipelining in bounded batches.
+  const batchSize = 250;
+  for (let i = 0; i < websites.length; i += batchSize) {
+    const batch = websites.slice(i, i + batchSize);
+    const multi = client.multi();
+    for (const website of batch) {
+      multi.xAdd(STREAM_NAME, "*", { url: website.url, id: website.id });
+    }
+    const res = await multi.exec();
+    // node-redis returns null if disconnected; surface as error
+    if (res === null) {
+      throw new Error("Redis MULTI exec returned null (disconnected?)");
+    }
+  }
 }
 
 export async function xReadGroup(
@@ -94,13 +106,13 @@ export async function xReadGroup(
       },
       {
         COUNT: 5,
+        // Prefer server-side blocking over client-side polling loops.
+        // This reduces CPU and log spam when the stream is idle.
+        BLOCK: 1000,
       },
     )) as StreamReadResponse[];
 
     if (!response || response.length === 0 || !response[0]?.messages) {
-      console.log(
-        `No messages found in stream for consumer group: ${options.consumerGroup}, worker: ${options.workerId}`,
-      );
       return [];
     }
 

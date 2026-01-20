@@ -4,10 +4,12 @@ import {
   websiteIdInput,
   websiteOutput,
   websiteListOutput,
+  websiteStatusListOutput,
 } from "@repo/validators";
 import { protectedProcedure, router } from "../trpc.js";
 import { prismaClient } from "@repo/store";
 import { TRPCError } from "@trpc/server";
+import { getRecentStatusEvents } from "@repo/clickhouse";
 
 export const websiteRouter = router({
   register: protectedProcedure
@@ -157,4 +159,86 @@ export const websiteRouter = router({
 
     return { success: true };
   }),
+
+  status: protectedProcedure
+    .output(websiteStatusListOutput)
+    .query(async (opts) => {
+      const userId = opts.ctx.user.userId;
+
+      const websites = await prismaClient.website.findMany({
+        where: {
+          userId,
+        },
+        orderBy: {
+          createdAt: "desc",
+        },
+      });
+
+      if (websites.length === 0) {
+        return { websites: [] };
+      }
+
+      // Get website IDs
+      const websiteIds = websites.map((w) => w.id);
+
+      // Fetch the latest status snapshot per website from Postgres.
+      const latestStatuses = await prismaClient.websiteStatusLatest.findMany({
+        where: { websiteId: { in: websiteIds } },
+      });
+      const latestByWebsite = new Map(
+        latestStatuses.map((status) => [status.websiteId, status]),
+      );
+
+      // Query ClickHouse for recent status events (last 90 checks per website).
+      // If ClickHouse is not configured/available, still return the websites with
+      // empty statusPoints so the UI can render the collection.
+      let statusEvents: Awaited<ReturnType<typeof getRecentStatusEvents>> = [];
+      try {
+        statusEvents = await getRecentStatusEvents(websiteIds, 90);
+      } catch (error) {
+        console.error(
+          "[website.status] Failed to fetch status events from ClickHouse",
+          error,
+        );
+      }
+
+      // Group status events by website ID
+      const statusByWebsite = new Map<
+        string,
+        Array<{
+          status: "UP" | "DOWN";
+          checkedAt: Date;
+          responseTimeMs: number | null;
+        }>
+      >();
+
+      for (const event of statusEvents) {
+        if (!statusByWebsite.has(event.website_id)) {
+          statusByWebsite.set(event.website_id, []);
+        }
+        statusByWebsite.get(event.website_id)!.push({
+          status: event.status,
+          checkedAt: new Date(event.checked_at),
+          responseTimeMs: event.response_time_ms,
+        });
+      }
+
+      // Build the response
+      const websitesWithStatus = websites.map((website) => ({
+        websiteId: website.id,
+        websiteName: website.name,
+        websiteUrl: website.url,
+        statusPoints: statusByWebsite.get(website.id) || [],
+        currentStatus: latestByWebsite.has(website.id)
+          ? {
+              status: latestByWebsite.get(website.id)!.status,
+              checkedAt: latestByWebsite.get(website.id)!.checkedAt,
+              responseTimeMs: latestByWebsite.get(website.id)!.responseTimeMs,
+              regionId: latestByWebsite.get(website.id)!.regionId,
+            }
+          : null,
+      }));
+
+      return { websites: websitesWithStatus };
+    }),
 });

@@ -5,13 +5,19 @@ import useScroll from "@/lib/use-scroll";
 import { cx } from "@/lib/utils";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import React from "react";
 import { UptiqueLogo } from "../../../public/UptiqueLogo";
 import { Button } from "../Button";
 
 export function Navigation() {
+  const router = useRouter();
   const scrolled = useScroll(15);
   const [open, setOpen] = React.useState(false);
+  const [isLoggedIn, setIsLoggedIn] = React.useState<boolean>(() => {
+    if (typeof window === "undefined") return false;
+    return !!localStorage.getItem("token");
+  });
 
   React.useEffect(() => {
     const mediaQuery: MediaQueryList = window.matchMedia("(min-width: 768px)");
@@ -26,6 +32,35 @@ export function Navigation() {
       mediaQuery.removeEventListener("change", handleMediaQueryChange);
     };
   }, []);
+
+  // Check auth state on mount and listen for auth changes
+  React.useEffect(() => {
+    const checkAuth = () => {
+      setIsLoggedIn(!!localStorage.getItem("token"));
+    };
+
+    checkAuth();
+    // Listen for custom auth-change event (fired on login/logout)
+    window.addEventListener("auth-change", checkAuth);
+    // Listen for storage changes (handles cross-tab login/logout)
+    window.addEventListener("storage", checkAuth);
+    // Check on focus (handles cases where token was set elsewhere)
+    window.addEventListener("focus", checkAuth);
+
+    return () => {
+      window.removeEventListener("auth-change", checkAuth);
+      window.removeEventListener("storage", checkAuth);
+      window.removeEventListener("focus", checkAuth);
+    };
+  }, []);
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    // Dispatch custom event to update navbar (though setIsLoggedIn already handles it)
+    window.dispatchEvent(new Event("auth-change"));
+    setIsLoggedIn(false);
+    router.push("/login");
+  };
 
   return (
     <header
@@ -65,13 +100,26 @@ export function Navigation() {
               </Link>
             </div>
           </nav>
-          <Button className="hidden h-10 font-semibold md:flex" asChild>
-            <Link href="/dashboard">Dashboard</Link>
-          </Button>
-          <div className="flex gap-x-2 md:hidden">
-            <Button asChild>
+          {isLoggedIn ? (
+            <Button
+              className="hidden h-10 font-semibold md:flex"
+              onClick={handleLogout}
+            >
+              Logout
+            </Button>
+          ) : (
+            <Button className="hidden h-10 font-semibold md:flex" asChild>
               <Link href="/dashboard">Dashboard</Link>
             </Button>
+          )}
+          <div className="flex gap-x-2 md:hidden">
+            {isLoggedIn ? (
+              <Button onClick={handleLogout}>Logout</Button>
+            ) : (
+              <Button asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </Button>
+            )}
             <Button
               onClick={() => setOpen(!open)}
               variant="light"
@@ -92,6 +140,11 @@ export function Navigation() {
           )}
         >
           <ul className="space-y-4 font-medium">
+            {isLoggedIn && (
+              <li onClick={() => setOpen(false)}>
+                <Link href="/dashboard">Dashboard</Link>
+              </li>
+            )}
             <li onClick={() => setOpen(false)}>
               <Link href={siteConfig.baseLinks.about}>About</Link>
             </li>

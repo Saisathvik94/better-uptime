@@ -66,6 +66,40 @@ export const websiteListOutput = z.object({
 });
 
 /**
+ * Status data point for a single check
+ */
+export const websiteStatusPoint = z.object({
+  status: z.enum(["UP", "DOWN"]),
+  checkedAt: z.date(),
+  responseTimeMs: z.number().nullable(),
+});
+
+export const websiteCurrentStatus = z.object({
+  status: z.enum(["UP", "DOWN"]),
+  checkedAt: z.date(),
+  responseTimeMs: z.number().nullable(),
+  regionId: z.string(),
+});
+
+/**
+ * Status data for a website
+ */
+export const websiteStatusOutput = z.object({
+  websiteId: z.string(),
+  websiteName: z.string().nullable(),
+  websiteUrl: z.string(),
+  statusPoints: z.array(websiteStatusPoint),
+  currentStatus: websiteCurrentStatus.nullable(),
+});
+
+/**
+ * Output validation for website status list
+ */
+export const websiteStatusListOutput = z.object({
+  websites: z.array(websiteStatusOutput),
+});
+
+/**
  * Type exports for use in API routes
  */
 export type CreateWebsiteInput = z.infer<typeof createWebsiteInput>;
@@ -73,3 +107,7 @@ export type UpdateWebsiteInput = z.infer<typeof updateWebsiteInput>;
 export type WebsiteIdInput = z.infer<typeof websiteIdInput>;
 export type WebsiteOutput = z.infer<typeof websiteOutput>;
 export type WebsiteListOutput = z.infer<typeof websiteListOutput>;
+export type WebsiteStatusPoint = z.infer<typeof websiteStatusPoint>;
+export type WebsiteCurrentStatus = z.infer<typeof websiteCurrentStatus>;
+export type WebsiteStatusOutput = z.infer<typeof websiteStatusOutput>;
+export type WebsiteStatusListOutput = z.infer<typeof websiteStatusListOutput>;

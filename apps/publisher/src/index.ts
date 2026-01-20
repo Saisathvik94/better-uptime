@@ -1,7 +1,13 @@
 import { prismaClient } from "@repo/store";
 import { xAddBulk } from "@repo/streams";
 
+let inFlight = false;
+
 async function publish() {
+  if (inFlight) {
+    return;
+  }
+  inFlight = true;
   try {
     const websites = await prismaClient.website.findMany({
       select: {
@@ -24,6 +30,8 @@ async function publish() {
     );
   } catch (error) {
     console.error(`[Publisher] Error during publish cycle:`, error);
+  } finally {
+    inFlight = false;
   }
 }
 

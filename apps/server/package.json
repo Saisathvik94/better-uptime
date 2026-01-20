@@ -10,7 +10,7 @@
     }
   },
   "scripts": {
-    "dev": "bun run --watch src/bin.ts",
+    "dev": "bun run --hot src/bin.ts",
     "start": "bun run src/bin.ts"
   },
   "devDependencies": {
