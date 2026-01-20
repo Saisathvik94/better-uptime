@@ -36,9 +36,22 @@ jobs:
             git checkout main
             git pull origin main
 
-            echo "Ensuring pnpm version..."
-            corepack enable
-            corepack prepare pnpm@9 --activate
+            echo "Ensuring pnpm is available..."
+            if command -v corepack >/dev/null 2>&1; then
+              echo "Using corepack to enable pnpm..."
+              corepack enable
+              corepack prepare pnpm@9 --activate
+            else
+              echo "corepack not found; ensuring pnpm via npm..."
+              if ! command -v pnpm >/dev/null 2>&1; then
+                if command -v npm >/dev/null 2>&1; then
+                  npm install -g pnpm@9
+                else
+                  echo "Neither corepack nor npm is available; cannot install pnpm."
+                  exit 1
+                fi
+              fi
+            fi
 
             echo "Installing dependencies..."
             pnpm install --frozen-lockfile
