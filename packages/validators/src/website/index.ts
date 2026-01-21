@@ -72,12 +72,14 @@ export const websiteStatusPoint = z.object({
   status: z.enum(["UP", "DOWN"]),
   checkedAt: z.date(),
   responseTimeMs: z.number().nullable(),
+  httpStatusCode: z.number().nullable(),
 });
 
 export const websiteCurrentStatus = z.object({
   status: z.enum(["UP", "DOWN"]),
   checkedAt: z.date(),
   responseTimeMs: z.number().nullable(),
+  httpStatusCode: z.number().nullable(),
   regionId: z.string(),
 });
 

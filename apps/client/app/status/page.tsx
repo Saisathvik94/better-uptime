@@ -6,6 +6,7 @@ import Link from "next/link";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
 import { Tracker, type TrackerBlockProps } from "@/components/Tracker";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 function getErrorMessage(error: { message: string }): string {
   try {
@@ -58,6 +59,7 @@ export default function StatusPage() {
           status: "UP" | "DOWN";
           checkedAt: Date | string;
           responseTimeMs: number | null;
+          httpStatusCode: number | null;
           regionId: string;
         }
       | null
@@ -186,12 +188,14 @@ export default function StatusPage() {
     return statusQuery.data.websites.map((website) => {
       const websiteTrackerData = getTrackerData(website.statusPoints);
       const hasData = websiteTrackerData.length > 0;
+      const hasCloudflareBlock = website.currentStatus?.httpStatusCode === 403;
 
       return {
         website,
         trackerData: websiteTrackerData,
         hasData,
         badge: buildStatusBadge(website.currentStatus),
+        hasCloudflareBlock,
       };
     });
   }, [statusQuery.data]);
@@ -252,7 +256,13 @@ export default function StatusPage() {
           ) : (
             <div className="space-y-8">
               {processedWebsites.map(
-                ({ website, trackerData, hasData, badge }) => (
+                ({
+                  website,
+                  trackerData,
+                  hasData,
+                  badge,
+                  hasCloudflareBlock,
+                }) => (
                   <div key={website.websiteId} className="space-y-2">
                     <div className="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
                       <div className="min-w-0 flex-1">
@@ -284,6 +294,18 @@ export default function StatusPage() {
                       </div>
                     </div>
                     <Tracker data={trackerData} hoverEffect={hasData} />
+                    {hasCloudflareBlock && (
+                      <Alert className="border-amber-500/50 bg-amber-500/10">
+                        <AlertDescription className="text-amber-700 dark:text-amber-400">
+                          <span className="font-medium">
+                            Cloudflare detected:
+                          </span>{" "}
+                          We&apos;re receiving a 403 Forbidden response. For
+                          accurate monitoring, disable the Cloudflare proxy
+                          (orange cloud → gray cloud) in your DNS settings.
+                        </AlertDescription>
+                      </Alert>
+                    )}
                     {!hasData ? (
                       <div className="text-sm text-muted-foreground">
                         No status data available yet. Checks will appear here

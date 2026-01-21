@@ -32,6 +32,10 @@ async function checkWebsite(
       timeout: 10_000,
       maxRedirects: 5,
       validateStatus: () => true,
+      headers: {
+        "User-Agent":
+          "Uptique/1.0 (Uptime Monitor; https://uptique.raashed.xyz)",
+      },
     });
 
     responseTimeMs = Date.now() - startTime;
@@ -57,6 +61,7 @@ async function checkWebsite(
     regionId: REGION_ID,
     status,
     responseTimeMs,
+    httpStatusCode: httpStatus,
     checkedAt,
   };
 }
@@ -72,12 +77,14 @@ async function upsertLatestStatuses(events: UptimeEventRecord[]) {
           websiteId: event.websiteId,
           status: event.status,
           responseTimeMs: event.responseTimeMs ?? null,
+          httpStatusCode: event.httpStatusCode ?? null,
           regionId: event.regionId,
           checkedAt: event.checkedAt,
         },
         update: {
           status: event.status,
           responseTimeMs: event.responseTimeMs ?? null,
+          httpStatusCode: event.httpStatusCode ?? null,
           regionId: event.regionId,
           checkedAt: event.checkedAt,
         },
