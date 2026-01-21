@@ -27,13 +27,17 @@ async function checkWebsite(
   const checkedAt = new Date();
 
   try {
-    await axios.get(url, {
+    const res = await axios.get(url, {
       timeout: 10_000,
       maxRedirects: 5,
       validateStatus: () => true,
     });
 
     responseTimeMs = Date.now() - startTime;
+
+    if (res.status >= 400) {
+      status = "DOWN";
+    }
   } catch {
     status = "DOWN";
   }
