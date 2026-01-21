@@ -22,8 +22,9 @@ async function checkWebsite(
   websiteId: string,
 ): Promise<UptimeEventRecord> {
   const startTime = Date.now();
-  let status: UptimeStatus = "UP";
+  let status: UptimeStatus = "DOWN";
   let responseTimeMs: number | undefined;
+  let httpStatus: number | undefined;
   const checkedAt = new Date();
 
   try {
@@ -34,12 +35,21 @@ async function checkWebsite(
     });
 
     responseTimeMs = Date.now() - startTime;
+    httpStatus = res.status;
 
-    if (res.status >= 500) {
-      status = "DOWN";
-    }
-  } catch {
-    status = "DOWN";
+    status = typeof httpStatus === "number" && httpStatus < 500 ? "UP" : "DOWN";
+
+    console.log(
+      `[Worker] [${websiteId}] ${url} => http=${httpStatus}, ${status}, ${responseTimeMs}ms`,
+    );
+  } catch (error) {
+    responseTimeMs = Date.now() - startTime;
+
+    console.log(
+      `[Worker] [${websiteId}] ${url} => FAILED (${responseTimeMs}ms): ${
+        error instanceof Error ? error.message : "Unknown error"
+      }`,
+    );
   }
 
   return {
