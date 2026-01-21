@@ -70,6 +70,7 @@ model WebsiteStatusLatest {
   websiteId      String       @id
   status         UptimeStatus
   responseTimeMs Int?
+  httpStatusCode Int?
   regionId       String
   checkedAt      DateTime
   updatedAt      DateTime     @updatedAt

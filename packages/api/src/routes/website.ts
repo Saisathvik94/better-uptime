@@ -209,6 +209,7 @@ export const websiteRouter = router({
           status: "UP" | "DOWN";
           checkedAt: Date;
           responseTimeMs: number | null;
+          httpStatusCode: number | null;
         }>
       >();
 
@@ -220,6 +221,7 @@ export const websiteRouter = router({
           status: event.status,
           checkedAt: new Date(event.checked_at),
           responseTimeMs: event.response_time_ms,
+          httpStatusCode: event.http_status_code,
         });
       }
 
@@ -234,6 +236,7 @@ export const websiteRouter = router({
               status: latestByWebsite.get(website.id)!.status,
               checkedAt: latestByWebsite.get(website.id)!.checkedAt,
               responseTimeMs: latestByWebsite.get(website.id)!.responseTimeMs,
+              httpStatusCode: latestByWebsite.get(website.id)!.httpStatusCode,
               regionId: latestByWebsite.get(website.id)!.regionId,
             }
           : null,

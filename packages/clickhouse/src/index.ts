@@ -14,6 +14,7 @@ export interface UptimeEventRecord {
   regionId: string;
   status: UptimeStatus;
   responseTimeMs?: number;
+  httpStatusCode?: number;
   checkedAt: Date;
 }
 
@@ -82,11 +83,20 @@ async function ensureSchema(): Promise<void> {
           region_id String,
           status Enum('UP' = 1, 'DOWN' = 0),
           response_time_ms Nullable(UInt32),
+          http_status_code Nullable(UInt16),
           checked_at DateTime64(3, 'UTC'),
           ingested_at DateTime64(3, 'UTC')
         )
         ENGINE = MergeTree
         ORDER BY (website_id, region_id, checked_at)
+      `,
+    });
+
+    // Add column if table already exists (for migration)
+    await clickhouse.command({
+      query: `
+        ALTER TABLE ${CLICKHOUSE_METRICS_TABLE}
+        ADD COLUMN IF NOT EXISTS http_status_code Nullable(UInt16)
       `,
     });
   })();
@@ -108,6 +118,7 @@ export async function recordUptimeEvent(
         region_id: event.regionId,
         status: event.status,
         response_time_ms: event.responseTimeMs ?? null,
+        http_status_code: event.httpStatusCode ?? null,
         checked_at: event.checkedAt.toISOString(),
         ingested_at: new Date().toISOString(),
       },
@@ -132,6 +143,7 @@ export async function recordUptimeEvents(
       region_id: event.regionId,
       status: event.status,
       response_time_ms: event.responseTimeMs ?? null,
+      http_status_code: event.httpStatusCode ?? null,
       checked_at: event.checkedAt.toISOString(),
       ingested_at: ingestedAtIso,
     })),
@@ -156,6 +168,7 @@ export async function getRecentStatusEvents(
     status: "UP" | "DOWN";
     checked_at: string;
     response_time_ms: number | null;
+    http_status_code: number | null;
   }>
 > {
   if (websiteIds.length === 0) {
@@ -186,7 +199,8 @@ export async function getRecentStatusEvents(
       website_id,
       status,
       checked_at,
-      response_time_ms
+      response_time_ms,
+      http_status_code
     FROM ${CLICKHOUSE_METRICS_TABLE}
     WHERE website_id IN (${escapedIds})
     ORDER BY website_id, checked_at DESC
@@ -212,6 +226,7 @@ export async function getRecentStatusEvents(
     status: "UP" | "DOWN";
     checked_at: string;
     response_time_ms: number | null;
+    http_status_code: number | null;
   }>;
 
   return data;
