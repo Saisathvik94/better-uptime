@@ -8,6 +8,7 @@ import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Label } from "@/components/Label";
+import { ProfileDropdown } from "@/components/ProfileDropdown";
 
 function getErrorMessage(error: { message: string }): string {
   try {
@@ -39,6 +40,11 @@ export default function DashboardPage() {
   }, [router, token]);
 
   const websitesQuery = trpc.website.list.useQuery(undefined, {
+    enabled: !!token,
+    retry: false,
+  });
+
+  const userQuery = trpc.user.me.useQuery(undefined, {
     enabled: !!token,
     retry: false,
   });
@@ -100,9 +106,19 @@ export default function DashboardPage() {
     );
   }
 
+  // Build profile data for dropdown
+  const profileData = userQuery.data
+    ? {
+        name: userQuery.data.name || userQuery.data.email || "User",
+        email: userQuery.data.email || "",
+        avatar: userQuery.data.avatarUrl || undefined,
+      }
+    : null;
+
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pt-28 pb-16">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="mx-auto w-full max-w-5xl px-4 pt-8 pb-16">
+      {/* Header with Profile Dropdown */}
+      <div className="flex items-center justify-between mb-8">
         <div className="space-y-1">
           <h1 className="text-2xl font-semibold tracking-tight">
             {dashboardTitle}
@@ -111,6 +127,7 @@ export default function DashboardPage() {
             Add the sites you want to monitor.
           </p>
         </div>
+        {profileData && <ProfileDropdown data={profileData} />}
       </div>
 
       <div className="mt-8 rounded-2xl border border-border bg-card p-6 text-card-foreground">
