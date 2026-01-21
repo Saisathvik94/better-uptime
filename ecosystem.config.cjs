@@ -25,8 +25,10 @@ module.exports = {
     {
       name: "uptique-server-production",
       cwd: "./apps/server",
-      script: "src/bin.ts",
-      interpreter: "/root/.bun/bin/bun",
+      script: "/root/.bun/bin/bun",
+      args: "src/bin.ts",
+      interpreter: "none",
+      exec_mode: "fork",
       env: {
         NODE_ENV: "production",
         PORT: "8084",
@@ -42,8 +44,10 @@ module.exports = {
     {
       name: "uptique-worker-production",
       cwd: "./apps/worker",
-      script: "src/index.ts",
-      interpreter: "/root/.bun/bin/bun",
+      script: "/root/.bun/bin/bun",
+      args: "src/index.ts",
+      interpreter: "none",
+      exec_mode: "fork",
       env: {
         NODE_ENV: "production",
       },
@@ -58,8 +62,10 @@ module.exports = {
     {
       name: "uptique-publisher-production",
       cwd: "./apps/publisher",
-      script: "src/index.ts",
-      interpreter: "/root/.bun/bin/bun",
+      script: "/root/.bun/bin/bun",
+      args: "src/index.ts",
+      interpreter: "none",
+      exec_mode: "fork",
       env: {
         NODE_ENV: "production",
       },
