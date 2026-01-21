@@ -1,7 +1,12 @@
 import { TRPCError } from "@trpc/server";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
-import { router, publicProcedure, JWT_SECRET } from "../trpc.js";
+import {
+  router,
+  publicProcedure,
+  protectedProcedure,
+  JWT_SECRET,
+} from "../trpc.js";
 import {
   userOutputValidation,
   userInputValidation,
@@ -431,5 +436,35 @@ export const userRouter = router({
       });
 
       return { token };
+    }),
+
+  me: protectedProcedure
+    .output(
+      z.object({
+        id: z.string(),
+        email: z.string().nullable(),
+        name: z.string().nullable(),
+        avatarUrl: z.string().nullable(),
+      }),
+    )
+    .query(async ({ ctx }) => {
+      const user = await prismaClient.user.findUnique({
+        where: { id: ctx.user.userId },
+        select: {
+          id: true,
+          email: true,
+          name: true,
+          avatarUrl: true,
+        },
+      });
+
+      if (!user) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "User not found",
+        });
+      }
+
+      return user;
     }),
 });

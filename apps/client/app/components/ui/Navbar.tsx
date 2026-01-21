@@ -5,13 +5,13 @@ import useScroll from "@/lib/use-scroll";
 import { cx } from "@/lib/utils";
 import { RiCloseLine, RiMenuLine } from "@remixicon/react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import React from "react";
 import { UptiqueLogo } from "../../../public/UptiqueLogo";
 import { Button } from "../Button";
 
 export function Navigation() {
-  const router = useRouter();
+  const pathname = usePathname();
   const scrolled = useScroll(15);
   const [open, setOpen] = React.useState(false);
   const [isLoggedIn, setIsLoggedIn] = React.useState<boolean>(() => {
@@ -54,13 +54,14 @@ export function Navigation() {
     };
   }, []);
 
-  const handleLogout = () => {
-    localStorage.removeItem("token");
-    // Dispatch custom event to update navbar (though setIsLoggedIn already handles it)
-    window.dispatchEvent(new Event("auth-change"));
-    setIsLoggedIn(false);
-    router.push("/login");
-  };
+  // Hide navbar when logged in user is on dashboard
+  const isDashboard = pathname?.startsWith("/dashboard");
+  if (isLoggedIn && isDashboard) {
+    return null;
+  }
+
+  // Determine where Dashboard button should navigate
+  const dashboardHref = isLoggedIn ? "/dashboard" : "/signup";
 
   return (
     <header
@@ -100,26 +101,13 @@ export function Navigation() {
               </Link>
             </div>
           </nav>
-          {isLoggedIn ? (
-            <Button
-              className="hidden h-10 font-semibold md:flex"
-              onClick={handleLogout}
-            >
-              Logout
-            </Button>
-          ) : (
-            <Button className="hidden h-10 font-semibold md:flex" asChild>
-              <Link href="/dashboard">Dashboard</Link>
-            </Button>
-          )}
+          <Button className="hidden h-10 font-semibold md:flex" asChild>
+            <Link href={dashboardHref}>Dashboard</Link>
+          </Button>
           <div className="flex gap-x-2 md:hidden">
-            {isLoggedIn ? (
-              <Button onClick={handleLogout}>Logout</Button>
-            ) : (
-              <Button asChild>
-                <Link href="/dashboard">Dashboard</Link>
-              </Button>
-            )}
+            <Button asChild>
+              <Link href={dashboardHref}>Dashboard</Link>
+            </Button>
             <Button
               onClick={() => setOpen(!open)}
               variant="light"
@@ -140,11 +128,6 @@ export function Navigation() {
           )}
         >
           <ul className="space-y-4 font-medium">
-            {isLoggedIn && (
-              <li onClick={() => setOpen(false)}>
-                <Link href="/dashboard">Dashboard</Link>
-              </li>
-            )}
             <li onClick={() => setOpen(false)}>
               <Link href={siteConfig.baseLinks.about}>About</Link>
             </li>
