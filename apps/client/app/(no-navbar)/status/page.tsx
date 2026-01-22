@@ -210,7 +210,17 @@ export default function StatusPage() {
   }, [statusQuery.data]);
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pt-28 pb-16">
+    <div className="relative mx-auto w-full max-w-5xl px-4 pt-28 pb-16">
+      {/* Left diagonal stripe border */}
+      <div
+        className="diagonal-stripes pointer-events-none absolute top-0 -left-3 hidden h-full w-2 lg:block"
+        aria-hidden="true"
+      />
+      {/* Right diagonal stripe border */}
+      <div
+        className="diagonal-stripes pointer-events-none absolute top-0 -right-3 hidden h-full w-2 lg:block"
+        aria-hidden="true"
+      />
       {!token ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-card-foreground">
           <div className="text-sm text-muted-foreground">
