@@ -2,13 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 import { PrismaClient } from "@repo/store/generated/prisma";
 import { PrismaNeon } from "@prisma/adapter-neon";
-
-// GitHub OAuth URLs
-const GITHUB_TOKEN_URL = "https://github.com/login/oauth/access_token";
-const GITHUB_USER_URL = "https://api.github.com/user";
-const GITHUB_EMAILS_URL = "https://api.github.com/user/emails";
-const FRONTEND_URL =
-  process.env.NEXT_PUBLIC_FRONTEND_URL || "http://localhost:3000";
+import {
+  GITHUB_TOKEN_URL,
+  GITHUB_USER_URL,
+  GITHUB_EMAILS_URL,
+  FRONTEND_URL,
+} from "@repo/config/constants";
 
 // Create Prisma client for Next.js (doesn't use Bun-dependent config)
 const adapter = new PrismaNeon({ connectionString: process.env.DATABASE_URL! });
