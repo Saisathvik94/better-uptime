@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { toast } from "sonner";
 import { trpc } from "@/lib/trpc";
-import { GITHUB_OAUTH_URL } from "@repo/config/constants";
+import { GITHUB_OAUTH_URL, FRONTEND_URL } from "@repo/config/constants";
 import { Button } from "@/components/Button";
 
 function getErrorMessage(error: { message: string }): string {
@@ -27,6 +27,7 @@ function handleGitHubLogin() {
 
   const params = new URLSearchParams({
     client_id: process.env.NEXT_PUBLIC_GITHUB_CLIENT_ID || "",
+    redirect_uri: `${FRONTEND_URL}/api/auth/github/callback`,
     scope: "read:user user:email",
     state,
   });
