@@ -213,12 +213,12 @@ export default function StatusPage() {
     <div className="relative mx-auto w-full max-w-5xl px-4 pt-28 pb-16">
       {/* Left diagonal stripe border */}
       <div
-        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-4 hidden w-3 lg:block"
+        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-5 hidden w-5 lg:block"
         aria-hidden="true"
       />
       {/* Right diagonal stripe border */}
       <div
-        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-4 hidden w-3 lg:block"
+        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-5 hidden w-5 lg:block"
         aria-hidden="true"
       />
       {!token ? (
