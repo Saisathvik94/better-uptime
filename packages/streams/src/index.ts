@@ -76,6 +76,12 @@ async function xAdd({ url, id }: WebsiteEvent) {
 }
 
 export async function xAddBulk(websites: WebsiteEvent[]) {
+  // #region agent log
+  console.log(
+    `[DEBUG:xAddBulk] Entry - websiteCount=${websites.length}, streamName=${STREAM_NAME}, websiteIds=${JSON.stringify(websites.map((w) => w.id))}`,
+  );
+  // #endregion
+
   // Avoid unbounded Promise.all fan-out (can freeze machines with large website counts).
   // Use Redis pipelining in bounded batches.
   const batchSize = 250;
@@ -90,6 +96,11 @@ export async function xAddBulk(websites: WebsiteEvent[]) {
     if (res === null) {
       throw new Error("Redis MULTI exec returned null (disconnected?)");
     }
+    // #region agent log
+    console.log(
+      `[DEBUG:xAddBulk] Batch done - batchIndex=${i}, batchSize=${batch.length}, streamIds=${JSON.stringify(res)}`,
+    );
+    // #endregion
   }
 }
 
@@ -97,6 +108,12 @@ export async function xReadGroup(
   options: ReadGroupOptions,
 ): Promise<MessageType[]> {
   try {
+    // #region agent log
+    console.log(
+      `[DEBUG:xReadGroup] Entry - consumerGroup=${options.consumerGroup}, workerId=${options.workerId}, streamName=${STREAM_NAME}`,
+    );
+    // #endregion
+
     const response = (await client.xReadGroup(
       options.consumerGroup,
       options.workerId,
@@ -112,10 +129,22 @@ export async function xReadGroup(
       },
     )) as StreamReadResponse[];
 
+    // #region agent log
+    console.log(
+      `[DEBUG:xReadGroup] Raw response - exists=${!!response}, length=${response?.length}, firstStreamMsgCount=${response?.[0]?.messages?.length}, raw=${JSON.stringify(response)?.slice(0, 500)}`,
+    );
+    // #endregion
+
     if (!response || response.length === 0 || !response[0]?.messages) {
+      // #region agent log
+      console.log(
+        `[DEBUG:xReadGroup] Empty response - response=${JSON.stringify(response)}`,
+      );
+      // #endregion
       return [];
     }
 
+    const rawMessages = response[0].messages;
     const messages: MessageType[] = response[0].messages
       .filter(
         (streamMessage: StreamMessage) =>
@@ -129,8 +158,19 @@ export async function xReadGroup(
         },
       }));
 
+    // #region agent log
+    console.log(
+      `[DEBUG:xReadGroup] Processed - rawCount=${rawMessages.length}, filteredCount=${messages.length}, filteredOut=${rawMessages.length - messages.length}, messageIds=${JSON.stringify(messages.map((m) => m.event.id))}`,
+    );
+    // #endregion
+
     return messages;
   } catch (error) {
+    // #region agent log
+    console.log(
+      `[DEBUG:xReadGroup] ERROR - ${String(error)}, name=${(error as Error)?.name}, message=${(error as Error)?.message}`,
+    );
+    // #endregion
     console.error("Error reading from stream:", error);
     return [];
   }
@@ -157,3 +197,24 @@ export async function xAckBulk(options: AckBulkOptions) {
     ),
   );
 }
+
+// #region agent log - diagnostic function
+export async function xPendingDiagnostic(consumerGroup: string): Promise<void> {
+  try {
+    // Get pending summary for the consumer group
+    const pendingSummary = await client.xPending(STREAM_NAME, consumerGroup);
+    // Get stream length
+    const streamLen = await client.xLen(STREAM_NAME);
+    // Get stream info
+    const streamInfo = await client.xInfoStream(STREAM_NAME);
+
+    console.log(
+      `[DEBUG:xPendingDiagnostic] streamName=${STREAM_NAME}, consumerGroup=${consumerGroup}, streamLength=${streamLen}, pendingSummary=${JSON.stringify(pendingSummary)}, firstEntry=${JSON.stringify(streamInfo?.firstEntry)}, lastEntry=${JSON.stringify(streamInfo?.lastEntry)}, groups=${streamInfo?.groups}`,
+    );
+  } catch (error) {
+    console.log(
+      `[DEBUG:xPendingDiagnostic] ERROR - ${String(error)}, consumerGroup=${consumerGroup}`,
+    );
+  }
+}
+// #endregion
