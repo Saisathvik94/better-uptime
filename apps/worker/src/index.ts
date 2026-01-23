@@ -4,7 +4,7 @@ import {
   type UptimeStatus,
 } from "@repo/clickhouse";
 import { REGION_ID, WORKER_ID } from "@repo/config";
-import { xAckBulk, xReadGroup } from "@repo/streams";
+import { xAckBulk, xReadGroup, xPendingDiagnostic } from "@repo/streams";
 import axios from "axios";
 import process from "node:process";
 
@@ -71,6 +71,15 @@ async function startWorker() {
       WORKER_ID,
     )})`,
   );
+
+  // #region agent log
+  console.log(
+    `[DEBUG:Worker] Starting - regionId=${REGION_ID}, workerId=${WORKER_ID}`,
+  );
+  // Run diagnostic to check for pending messages
+  await xPendingDiagnostic(REGION_ID);
+  // #endregion
+
   let loopCount = 0;
   while (true) {
     const response = await xReadGroup({
@@ -122,6 +131,16 @@ async function startWorker() {
     // (We may remove this after verifying blocking behavior via logs.)
     await new Promise((resolve) => setTimeout(resolve, 1000));
     loopCount++;
+
+    // #region agent log
+    // Run diagnostic every 10 loops to track pending message state
+    if (loopCount % 10 === 0) {
+      await xPendingDiagnostic(REGION_ID);
+      console.log(
+        `[DEBUG:Worker] Loop checkpoint - loopCount=${loopCount}, regionId=${REGION_ID}`,
+      );
+    }
+    // #endregion
   }
 }
 
