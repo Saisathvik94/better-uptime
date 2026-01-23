@@ -195,8 +195,10 @@ export default function StatusPage() {
   const processedWebsites = useMemo(() => {
     if (!statusQuery.data?.websites) return [];
     return statusQuery.data.websites.map((website) => {
-      const websiteTrackerData = getTrackerData(website.statusPoints);
-      const hasData = websiteTrackerData.length > 0;
+      const hasData = website.statusPoints.length > 0;
+      const websiteTrackerData = getTrackerData(
+        hasData ? website.statusPoints : [],
+      );
       const hasCloudflareBlock = website.currentStatus?.httpStatusCode === 403;
 
       return {

@@ -4,13 +4,7 @@ import {
   type UptimeStatus,
 } from "@repo/clickhouse";
 import { REGION_ID, WORKER_ID } from "@repo/config";
-import {
-  xAckBulk,
-  xReadGroup,
-  xReadGroupPending,
-  xAutoClaimStale,
-  xPendingDiagnostic,
-} from "@repo/streams";
+import { xAckBulk, xReadGroup, xAutoClaimStale } from "@repo/streams";
 import axios from "axios";
 import process from "node:process";
 
@@ -78,24 +72,6 @@ async function startWorker() {
     )})`,
   );
 
-  // #region agent log
-  fetch("http://127.0.0.1:7243/ingest/4d066341-b328-4de4-954f-033a4efeb773", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      sessionId: "debug-session",
-      runId: "run1",
-      hypothesisId: "E",
-      location: "apps/worker/src/index.ts:startWorker",
-      message: "Worker starting",
-      data: { regionId: REGION_ID, workerId: WORKER_ID },
-      timestamp: Date.now(),
-    }),
-  }).catch(() => {});
-  // Run diagnostic to check for pending messages
-  await xPendingDiagnostic(REGION_ID);
-  // #endregion
-
   // Drain any *stale pending* (already-delivered but unacked) messages first so
   // we don't leave older websites permanently stuck on dead consumers. We use
   // XAUTOCLAIM underneath so we can take over messages from other consumers.
@@ -151,7 +127,6 @@ async function startWorker() {
     }
   }
 
-  let loopCount = 0;
   while (true) {
     const response = await xReadGroup({
       consumerGroup: REGION_ID,
@@ -201,30 +176,6 @@ async function startWorker() {
     // Safety: keep a small delay to avoid tight loop if xReadGroup returns immediately.
     // (We may remove this after verifying blocking behavior via logs.)
     await new Promise((resolve) => setTimeout(resolve, 1000));
-    loopCount++;
-
-    // #region agent log
-    // Run diagnostic every 10 loops to track pending message state
-    if (loopCount % 10 === 0) {
-      await xPendingDiagnostic(REGION_ID);
-      fetch(
-        "http://127.0.0.1:7243/ingest/4d066341-b328-4de4-954f-033a4efeb773",
-        {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sessionId: "debug-session",
-            runId: "run1",
-            hypothesisId: "A",
-            location: "apps/worker/src/index.ts:loopCheckpoint",
-            message: "Worker loop checkpoint",
-            data: { loopCount, regionId: REGION_ID, workerId: WORKER_ID },
-            timestamp: Date.now(),
-          }),
-        },
-      ).catch(() => {});
-    }
-    // #endregion
   }
 }
 
