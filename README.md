@@ -4,13 +4,8 @@
     <img src="https://bun.sh/logo.svg" alt="Bun" width="58" />
     <img src="./apps/client/public/turborepo-icon-seeklogo.svg" alt="Turborepo" width="52" />
     <img src="https://raw.githubusercontent.com/colinhacks/zod/main/logo.svg" alt="Zod" width="58" />
-    <img src="https://www.prisma.io/favicon.ico" alt="Prisma" width="52" />
     <img src="https://trpc.io/img/logo.svg" alt="tRPC" width="52" />
-    <img
-      src="https://github.com/user-attachments/assets/48cb3514-3f5c-474e-a2c9-81a63f33e794"
-      alt="ClickHouse"
-      width="180"
-    />
+    <img src="https://www.prisma.io/favicon.ico" alt="Prisma" width="52" />
   </p>
 </div>
 
