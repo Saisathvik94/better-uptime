@@ -743,7 +743,7 @@ export default function StatusPage() {
                           <div className="text-sm text-muted-foreground">
                             {viewMode === "per-day"
                               ? `${daysInWindow} day${daysInWindow !== 1 ? "s" : ""}`
-                              : `${checksInWindow} check${checksInWindow !== 1 ? "s" : ""}`}
+                              : `${checksInWindow}/${TRACKER_CONFIG.SLOT_COUNT} check${checksInWindow !== 1 ? "s" : ""}`}
                           </div>
                         )}
                       </div>
