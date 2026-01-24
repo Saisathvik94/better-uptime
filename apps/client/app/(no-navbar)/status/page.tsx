@@ -742,8 +742,8 @@ export default function StatusPage() {
                         {hasData && (
                           <div className="text-sm text-muted-foreground">
                             {viewMode === "per-day"
-                              ? `${daysInWindow} days`
-                              : `${checksInWindow} checks`}
+                              ? `${daysInWindow} day${daysInWindow !== 1 ? "s" : ""}`
+                              : `${checksInWindow} check${checksInWindow !== 1 ? "s" : ""}`}
                           </div>
                         )}
                       </div>
