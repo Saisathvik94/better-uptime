@@ -122,7 +122,38 @@ jobs:
             # ---------- Redis (Docker) ----------
             echo "Starting Redis container..."
             cd docker
+            
+            # Clean up any stale containers/networks first
+            echo "Cleaning up any stale Docker resources..."
+            docker compose -f docker-compose.prod.yaml down --remove-orphans 2>/dev/null || true
+            
+            # Remove any orphaned networks that might cause issues
+            docker network prune -f || true
+            
+            # Start Redis container
+            echo "Starting Redis container..."
             docker compose -f docker-compose.prod.yaml up -d redis --remove-orphans
+            
+            # Verify container started
+            echo "Checking if Redis container started..."
+            sleep 2
+            if ! docker ps -a | grep -q "better-uptime-redis"; then
+              echo "❌ ERROR: Redis container failed to start"
+              echo "Checking Docker logs..."
+              docker compose -f docker-compose.prod.yaml logs redis || true
+              exit 1
+            fi
+            
+            # Check if container is running (not exited)
+            if docker ps | grep -q "better-uptime-redis"; then
+              echo "✓ Redis container is running"
+            else
+              echo "⚠ WARNING: Redis container exists but may not be running"
+              echo "Container status:"
+              docker ps -a | grep "better-uptime-redis" || true
+              echo "Redis container logs:"
+              docker compose -f docker-compose.prod.yaml logs redis || docker logs better-uptime-redis || true
+            fi
 
             # Wait for Redis to accept connections (CRITICAL: PM2 must wait)
             echo "Waiting for Redis to accept connections..."

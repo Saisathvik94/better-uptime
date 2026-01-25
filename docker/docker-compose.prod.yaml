@@ -1,5 +1,3 @@
-version: '3.8'
-
 services:
   redis:
     image: redis:7-alpine
@@ -15,10 +13,11 @@ services:
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "--raw", "incr", "ping"]
+      test: ["CMD", "redis-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 5
+      start_period: 5s
     restart: unless-stopped
 
 volumes:
