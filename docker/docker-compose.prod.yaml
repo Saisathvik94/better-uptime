@@ -6,6 +6,8 @@ services:
       - "6379:6379"
     volumes:
       - redis-data:/data
+    environment:
+      - REDIS_PASSWORD=${REDIS_PASSWORD:-}
     command: >
       redis-server
       --requirepass ${REDIS_PASSWORD:-}
@@ -13,7 +15,7 @@ services:
       --maxmemory 256mb
       --maxmemory-policy allkeys-lru
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "sh", "-c", "redis-cli -a \"$$REDIS_PASSWORD\" ping"]
       interval: 10s
       timeout: 3s
       retries: 5
