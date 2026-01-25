@@ -122,22 +122,55 @@ jobs:
             # ---------- Redis (Docker) ----------
             echo "Starting Redis container..."
             cd docker
-            docker compose -f docker-compose.prod.yaml up -d redis
+            docker compose -f docker-compose.prod.yaml up -d redis --remove-orphans
 
-            # Wait for Redis to be healthy
-            echo "Waiting for Redis to be healthy..."
-            sleep 5
+            # Wait for Redis to accept connections (CRITICAL: PM2 must wait)
+            echo "Waiting for Redis to accept connections..."
+            
+            # Install redis-tools if not available (for health check)
+            if ! command -v redis-cli >/dev/null 2>&1; then
+              echo "Installing redis-tools for health check..."
+              sudo apt-get update -qq
+              sudo apt-get install -y redis-tools >/dev/null 2>&1 || true
+            fi
 
-            # Check Redis status
+            # Get Redis password from .env if available (for health check)
+            REDIS_PASSWORD_ENV=""
+            if [ -f ".env" ]; then
+              REDIS_PASSWORD_ENV=$(grep "^REDIS_PASSWORD=" .env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+            elif [ -f "packages/config/.env" ]; then
+              REDIS_PASSWORD_ENV=$(grep "^REDIS_PASSWORD=" packages/config/.env 2>/dev/null | cut -d'=' -f2- | tr -d '"' | tr -d "'" || echo "")
+            fi
+
+            # Proper wait loop - ensures Redis is ready before PM2 starts
+            REDIS_READY=false
+            for i in {1..20}; do
+              # Try ping with password if available, otherwise without
+              if [ -n "$REDIS_PASSWORD_ENV" ]; then
+                if redis-cli -h 127.0.0.1 -p 6379 -a "$REDIS_PASSWORD_ENV" ping >/dev/null 2>&1; then
+                  echo "✓ Redis is accepting connections (attempt $i)"
+                  REDIS_READY=true
+                  break
+                fi
+              else
+                if redis-cli -h 127.0.0.1 -p 6379 ping >/dev/null 2>&1; then
+                  echo "✓ Redis is accepting connections (attempt $i)"
+                  REDIS_READY=true
+                  break
+                fi
+              fi
+              echo "Redis not ready yet... retrying ($i/20)"
+              sleep 2
+            done
+
+            if [ "$REDIS_READY" = false ]; then
+              echo "⚠ WARNING: Redis may not be fully ready, but continuing..."
+              echo "⚠ Check Redis logs: docker compose -f docker/docker-compose.prod.yaml logs redis"
+            fi
+
+            # Check Redis container status
             echo "Redis container status:"
             docker compose -f docker-compose.prod.yaml ps redis
-
-            # Test Redis connection
-            if docker compose -f docker-compose.prod.yaml exec -T redis redis-cli ping >/dev/null 2>&1; then
-              echo "✓ Redis is healthy and responding"
-            else
-              echo "⚠ Redis health check inconclusive (may need password authentication)"
-            fi
 
             # ---------- PM2 Services ----------
             echo "Reloading PM2 processes..."

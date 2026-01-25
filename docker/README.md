@@ -46,7 +46,7 @@ CLIENT_SECRET_GITHUB=your-github-client-secret
 RESEND_API_KEY=your-resend-api-key
 
 # Redis Configuration (dev defaults)
-REDIS_HOST=redis
+REDIS_HOST=redis  # Use 'redis' for Docker networking in dev
 REDIS_PORT=6379
 REDIS_USERNAME=default
 REDIS_PASSWORD=dev-password  # Default in dev, change for production
@@ -141,9 +141,10 @@ CLIENT_SECRET_GITHUB=your-github-client-secret
 RESEND_API_KEY=your-resend-api-key
 
 # Redis Configuration (REQUIRED - use strong password)
-REDIS_HOST=redis
+# IMPORTANT: Use 127.0.0.1 for PM2 services running on host
+REDIS_HOST=127.0.0.1
 REDIS_PORT=6379
-REDIS_USERNAME=default
+REDIS_USERNAME=
 REDIS_PASSWORD=your-strong-redis-password  # REQUIRED in production
 
 # Backend

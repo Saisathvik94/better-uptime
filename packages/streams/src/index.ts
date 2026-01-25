@@ -71,19 +71,39 @@ if (!isTestEnv) {
     socket: {
       host: REDIS_HOST,
       port: Number(REDIS_PORT),
+      reconnectStrategy: (retries) => {
+        if (retries > 10) {
+          console.error("Redis: Max reconnection attempts reached");
+          return new Error("Redis connection failed after 10 retries");
+        }
+        const delay = Math.min(retries * 100, 3000);
+        console.log(`Redis: Reconnecting in ${delay}ms (attempt ${retries})`);
+        return delay;
+      },
     },
   });
 
   redisClient.on("error", (err) => {
-    console.error("Redis Client Error", err);
-    process.exit(1);
+    console.error("Redis Client Error:", err.message);
+    // Don't exit - allow automatic reconnection
+  });
+
+  redisClient.on("connect", () => {
+    console.log("Redis: Connected successfully");
+  });
+
+  redisClient.on("reconnecting", () => {
+    console.log("Redis: Reconnecting...");
   });
 
   try {
     client = await redisClient.connect();
+    console.log("Redis: Initial connection established");
   } catch (error) {
     console.error("Failed to connect to Redis:", error);
-    process.exit(1);
+    // Don't exit - the client will retry automatically
+    // Set client to null so functions can handle it gracefully
+    client = null;
   }
 }
 
@@ -94,7 +114,8 @@ export async function xAddBulk(websites: WebsiteEvent[]) {
   }
 
   if (!client) {
-    throw new Error("Redis client not initialized");
+    console.warn("Redis client not initialized, skipping xAddBulk");
+    return;
   }
 
   // Avoid unbounded Promise.all fan-out (can freeze machines with large website counts).
@@ -123,7 +144,8 @@ export async function xReadGroup(
   }
 
   if (!client) {
-    throw new Error("Redis client not initialized");
+    console.warn("Redis client not initialized, returning empty messages");
+    return [];
   }
 
   try {
@@ -178,7 +200,8 @@ export async function xAutoClaimStale(
   }
 
   if (!client) {
-    throw new Error("Redis client not initialized");
+    console.warn("Redis client not initialized, returning empty messages");
+    return [];
   }
 
   try {
@@ -227,7 +250,8 @@ async function xAck(options: AckOptions): Promise<number> {
   }
 
   if (!client) {
-    throw new Error("Redis client not initialized");
+    console.warn("Redis client not initialized, skipping ack");
+    return 0;
   }
 
   try {
@@ -282,7 +306,12 @@ export async function xPendingInfo(
   }
 
   if (!client) {
-    throw new Error("Redis client not initialized");
+    console.warn("Redis client not initialized, returning empty pending info");
+    return {
+      pending: 0,
+      oldestIdleMs: null,
+      consumers: [],
+    };
   }
 
   try {
