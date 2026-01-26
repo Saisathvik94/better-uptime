@@ -91,41 +91,69 @@ async function startWorker() {
 
   // WORKER SELF-LIVENESS WATCHDOG:
   // Track last successful ClickHouse write to detect worker stalls
-  // If no writes occur for >15 minutes, exit with code 1 so PM2 can restart
+  // Liveness signal must be updated whenever ClickHouse successfully accepts a batch
   let lastSuccessfulWriteAt: number | null = null;
 
-  // PEL monitoring - self-healing, not noisy
-  // Only log CRITICAL if pending > 0 for >10 minutes to avoid log spam
+  // Helper function to mark successful ClickHouse write
+  // MUST be called whenever ClickHouse successfully accepts a batch:
+  // - fresh messages
+  // - reclaimed (PEL) messages
+  // - partial batches (even if some messages failed HTTP checks)
+  function markWriteSuccess(): void {
+    lastSuccessfulWriteAt = Date.now();
+  }
+
+  // PEL monitoring - track previous count to detect non-decreasing condition
+  let previousPelCount: number = 0;
+  let pelNonDecreasingSince: number | null = null;
   let pelCriticalLoggedAt: number | null = null;
+
   setInterval(
     async () => {
       try {
         const pelInfo = await xPendingInfo(REGION_ID);
-        if (pelInfo.pending > 0) {
-          const oldestIdleMs = pelInfo.oldestIdleMs ?? 0;
-          const oldestIdleSeconds = Math.floor(oldestIdleMs / 1000);
+        const currentPelCount = pelInfo.pending;
 
-          // CRITICAL: Only log if pending > 0 for >10 minutes (600s)
-          // This prevents log spam while still alerting on persistent issues
-          if (oldestIdleMs > 600_000) {
-            // 10 minutes
-            const now = Date.now();
-            // Only log once per 10-minute window to avoid spam
-            if (
-              pelCriticalLoggedAt === null ||
-              now - pelCriticalLoggedAt > 600_000
-            ) {
-              console.error(
-                `[Worker] PEL CRITICAL: ${pelInfo.pending} pending message(s) for >10 minutes, oldest idle: ${oldestIdleSeconds}s. PEL auto-heal should recover these.`,
-              );
-              pelCriticalLoggedAt = now;
+        if (currentPelCount > 0) {
+          // Check if PEL count is NOT decreasing
+          if (currentPelCount >= previousPelCount) {
+            // PEL is not decreasing - start tracking
+            if (pelNonDecreasingSince === null) {
+              pelNonDecreasingSince = Date.now();
             }
+
+            const timeNonDecreasing = Date.now() - pelNonDecreasingSince;
+            const oldestIdleMs = pelInfo.oldestIdleMs ?? 0;
+            const oldestIdleSeconds = Math.floor(oldestIdleMs / 1000);
+
+            // CRITICAL: Only log if PEL reclaim ran, pending count did NOT decrease,
+            // and condition persisted >30 minutes (1800s)
+            if (timeNonDecreasing > 1_800_000) {
+              // 30 minutes
+              const now = Date.now();
+              // Only log once per 30-minute window to avoid spam
+              if (
+                pelCriticalLoggedAt === null ||
+                now - pelCriticalLoggedAt > 1_800_000
+              ) {
+                console.error(
+                  `[Worker] PEL CRITICAL: ${currentPelCount} pending message(s) not decreasing for >30 minutes, oldest idle: ${oldestIdleSeconds}s`,
+                );
+                pelCriticalLoggedAt = now;
+              }
+            }
+          } else {
+            // PEL is decreasing - reset tracking
+            pelNonDecreasingSince = null;
+            pelCriticalLoggedAt = null;
           }
-          // System continues running - PEL auto-heal will recover messages
         } else {
-          // Reset critical log timestamp when PEL is clear
+          // PEL is clear - reset all tracking
+          pelNonDecreasingSince = null;
           pelCriticalLoggedAt = null;
         }
+
+        previousPelCount = currentPelCount;
       } catch (error) {
         // Log error but don't crash - monitoring failures shouldn't stop processing
         console.error("[Worker] Failed to check PEL status:", error);
@@ -136,7 +164,7 @@ async function startWorker() {
 
   // WORKER SELF-LIVENESS WATCHDOG:
   // Monitor last successful ClickHouse write to detect worker stalls
-  // If no writes for >15 minutes, exit with code 1 so PM2 can restart
+  // LOG ONLY - never exit process (no self-DDoS via restarts)
   setInterval(
     () => {
       if (lastSuccessfulWriteAt === null) {
@@ -147,20 +175,28 @@ async function startWorker() {
       const timeSinceLastWrite = Date.now() - lastSuccessfulWriteAt;
       const timeSinceLastWriteMinutes = Math.floor(timeSinceLastWrite / 60_000);
 
-      // CRITICAL: Exit if no writes for >15 minutes (hard liveness escape hatch)
+      // CRITICAL: Log if no writes for >15 minutes, but NEVER exit process
+      // PM2 restarts must NOT be relied upon for correctness
       if (timeSinceLastWrite > 900_000) {
         // 15 minutes
         console.error(
-          `[Worker] LIVENESS CRITICAL: No ClickHouse writes for ${timeSinceLastWriteMinutes} minutes. Worker appears stalled. Exiting to allow PM2 restart.`,
+          `[Worker] LIVENESS WARNING: No ClickHouse writes for ${timeSinceLastWriteMinutes} minutes. Worker may be stalled.`,
         );
-        // eslint-disable-next-line no-undef
-        process.exit(1);
+        // DO NOT call process.exit() - allow worker to self-heal
       }
     },
     2 * 60 * 1000,
   ); // Check every 2 minutes
 
-  // Helper function to process messages (used for both fresh and reclaimed)
+  // SINGLE MESSAGE PIPELINE:
+  // Unified processing function for both fresh and reclaimed messages
+  // This ensures zero code duplication and consistent behavior
+  //
+  // ARCHITECTURAL INVARIANTS (NON-NEGOTIABLE):
+  // 1. ACK SAFETY: Every message is ACKed exactly once, even if HTTP/ClickHouse fails
+  // 2. CLICKHOUSE LIVENESS: Liveness updates when ClickHouse accepts a request (not data quality)
+  // 3. NO EARLY RETURNS: All ACKs happen in finally block - no code path bypasses ACK
+  // 4. IDEMPOTENT: Publisher re-enqueues ensure retries; Redis is transient queue
   async function processMessages(
     messages: Awaited<ReturnType<typeof xReadGroup>>,
     isReclaimed: boolean = false,
@@ -229,19 +265,40 @@ async function startWorker() {
         }
       }
 
-      // CRITICAL: ACK ALL messages in finally block, regardless of success/failure
-      // This ensures no message is left un-ACKed, preventing PEL growth
+      // ACK SAFETY INVARIANT (NON-NEGOTIABLE):
+      // Every message that enters the worker must be ACKed exactly once.
+      // ACK must happen even if:
+      // - HTTP fails
+      // - ClickHouse fails
+      // - Redis disconnects mid-batch
+      // PEL growth must be impossible by construction.
       const allMessageIds = [
         ...successful.map((s) => s.streamId),
         ...failedIds,
       ];
 
+      // CLICKHOUSE LIVENESS INVARIANT:
+      // Worker liveness is defined as "ClickHouse accepted a request"
+      // Liveness must NOT depend on:
+      // - number of rows
+      // - successful HTTP checks
+      // - fresh vs reclaimed messages
+      // Any successful ClickHouse request must update liveness
+      // CRITICAL: Call recordUptimeEvents unconditionally (even with empty array)
+      // This ensures liveness tracks ClickHouse availability, not data quality
+      // Zero rows is still a successful write - it proves ClickHouse is reachable
       try {
         // Persist immutable uptime events to ClickHouse (single source of truth)
+        await recordUptimeEvents(successful.map((s) => s.event));
+        // CRITICAL: Update liveness signal whenever ClickHouse successfully accepts a request
+        // This must happen for:
+        // - fresh batches
+        // - reclaimed (PEL) batches
+        // - partial batches (even if some HTTP checks failed)
+        // - empty batches (all HTTP checks failed, but ClickHouse is reachable)
+        // Liveness tracks system health (ClickHouse availability), not data quality
+        markWriteSuccess(); // ← liveness = ClickHouse accepted request
         if (successful.length > 0) {
-          await recordUptimeEvents(successful.map((s) => s.event));
-          // Update last successful write timestamp for liveness watchdog
-          lastSuccessfulWriteAt = Date.now();
           const action = isReclaimed ? "Replayed" : "Recorded";
           console.log(
             `[Worker] ${action} ${successful.length} uptime check(s) to ClickHouse`,
@@ -254,12 +311,11 @@ async function startWorker() {
         );
         // Continue to ACK even if ClickHouse fails - prevents PEL growth
         // Failed checks will be retried on next publisher cycle
+        // Liveness is NOT updated on ClickHouse failure (correct behavior)
       } finally {
-        // CRITICAL: ACK ALL messages (successful and failed) in finally block
-        // This ensures messages are always ACKed even if:
-        // - HTTP check fails
-        // - ClickHouse insert fails
-        // - Any exception is thrown
+        // ACK ALL messages unconditionally (independent of ClickHouse/HTTP success)
+        // This is the single ACK point - no early returns can bypass this
+        // finally block ensures ACK happens even if exceptions are thrown
         if (allMessageIds.length > 0) {
           try {
             await xAckBulk({
@@ -290,25 +346,28 @@ async function startWorker() {
       // Process fresh messages if any were received
       if (fresh.length > 0) {
         await processMessages(fresh, false);
-        // Continue loop immediately to check for more fresh messages
-        continue;
+        // Continue to PEL reclaim below (maintenance runs every iteration)
       }
 
-      // 2. ONLY if no fresh messages: attempt PEL reclaim (repair-only)
-      // This ensures fresh messages always have priority and prevents PEL dominance
+      // 2. PEL RECLAIM MUST NEVER STARVE:
+      // PEL reclaim is maintenance, not a fallback.
+      // Reclaim MUST run every loop iteration, even when fresh messages exist.
+      // Reclaim MUST be rate-limited (small batch) so it cannot starve fresh work.
+      // Fresh messages always have priority, but reclaim always runs.
       const reclaimed = await xAutoClaimStale({
         consumerGroup: REGION_ID,
         workerId: WORKER_ID,
         minIdleMs: 300_000, // 5 minutes - reclaim messages idle > 5 mins
-        count: 10, // Process up to 10 reclaimed messages per batch
-        maxTotalReclaim: 20, // Max 20 messages per cycle to prevent blocking
+        count: 5, // Small batch size to prevent starving fresh work
+        maxTotalReclaim: 10, // Max 10 messages per cycle (rate-limited maintenance)
       });
 
       if (reclaimed.length > 0) {
         await processMessages(reclaimed, true);
-        // Continue loop to check for fresh messages again
-        continue;
       }
+
+      // Continue loop to check for fresh messages again
+      // PEL reclaim will run again on next iteration (maintenance, not fallback)
     } catch (error) {
       // Log error but don't crash - allow retry on next iteration
       // Connection errors will be handled by Redis reconnect strategy
