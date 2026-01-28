@@ -9,7 +9,7 @@
   </p>
 </div>
 
-<h2 align="center">Uptiqé (uptick) - monitor your services with a better uptime</h2>
+<h2 align="center">Uptiqe (uptick) - monitor your services with a better uptime</h2>
 
 <div align="center">
   <img src="./apps/client/public/better-uptime.gif" alt="Better Uptime Demo" />
