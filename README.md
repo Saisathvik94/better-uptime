@@ -21,8 +21,6 @@
   <img src="./apps/client/public/better-uptime.gif" alt="Uptiqe Demo" />
 </div>
 
----
-
 ## Test Credentials
 
 > [!TIP]
@@ -38,6 +36,10 @@
 > ClaudeBetter<3
 > ```
 
+---
+## Proof of Work
+![poc](https://github.com/user-attachments/assets/0f6c38ba-9d43-413c-800b-234440edcf8f)
+![poc2](https://github.com/user-attachments/assets/a5b4edc3-6e3c-448c-9881-eeeda55a49a5)
 ---
 
 ## System Architecture
