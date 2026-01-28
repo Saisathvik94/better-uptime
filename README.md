@@ -9,21 +9,25 @@
   </p>
 </div>
 
-<h2 align="center">Better Uptime</h2>
+<h2 align="center">Uptiqé (uptick) - monitor your services with a better uptime</h2>
 
 <div align="center">
   <img src="./apps/client/public/better-uptime.gif" alt="Better Uptime Demo" />
 </div>
 
-Immediate Credential's to test the project
+> [!TIP]
+> **Immediate Credentials !!**
+>
+> **Email**
+> ```bash
+> dummy.samaltman@gmail.com
+> ```
+>
+> **Password**
+> ```bash
+> ClaudeBetter<3
+> ```
 
-```bash
-dummy.samaltman@gmail.com
-```
-
-```bash
-ClaudeBetter<3
-```
 
 
 <img width="1634" height="735" alt="image" src="https://github.com/user-attachments/assets/41b53477-dc73-497b-ad50-60efa2ffb12f" />
