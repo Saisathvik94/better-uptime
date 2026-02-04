@@ -25,6 +25,17 @@ const CLICKHOUSE_SCHEMA_TIMEOUT_MS = 10_000;
 // Cap query wait so the status API never feels sluggish
 const CLICKHOUSE_QUERY_TIMEOUT_MS = 3_000;
 
+/**
+ * Convert a Date to ClickHouse DateTime64 format.
+ * ClickHouse expects: 'YYYY-MM-DD HH:mm:ss.SSS' (space separator, no 'T' or 'Z')
+ * JavaScript toISOString() returns: 'YYYY-MM-DDTHH:mm:ss.SSSZ'
+ *
+ * This utility centralizes the conversion to prevent brittle inline replacements.
+ */
+function toClickHouseDateTime64(date: Date): string {
+  return date.toISOString().replace("T", " ").replace("Z", "");
+}
+
 function withTimeout<T>(promise: Promise<T>, timeoutMs: number, label: string) {
   let timeoutId: ReturnType<typeof setTimeout> | undefined;
   const timeout = new Promise<never>((_, reject) => {
@@ -119,8 +130,8 @@ export async function recordUptimeEvent(
         status: event.status,
         response_time_ms: event.responseTimeMs ?? null,
         http_status_code: event.httpStatusCode ?? null,
-        checked_at: event.checkedAt.toISOString(),
-        ingested_at: new Date().toISOString(),
+        checked_at: toClickHouseDateTime64(event.checkedAt),
+        ingested_at: toClickHouseDateTime64(new Date()),
       },
     ],
     format: "JSONEachRow",
@@ -143,7 +154,7 @@ export async function recordUptimeEvents(
   // Early return AFTER ensureSchema() - liveness is confirmed, nothing to write
   if (events.length === 0) return;
   const clickhouse = getClient();
-  const ingestedAtIso = new Date().toISOString();
+  const ingestedAt = toClickHouseDateTime64(new Date());
 
   // PROTECT CLICKHOUSE FROM OVERLOAD:
   // Split large batches into chunks to prevent memory spikes and event loop blocks
@@ -158,8 +169,8 @@ export async function recordUptimeEvents(
         status: event.status,
         response_time_ms: event.responseTimeMs ?? null,
         http_status_code: event.httpStatusCode ?? null,
-        checked_at: event.checkedAt.toISOString(),
-        ingested_at: ingestedAtIso,
+        checked_at: toClickHouseDateTime64(event.checkedAt),
+        ingested_at: ingestedAt,
       })),
       format: "JSONEachRow",
     });
@@ -176,8 +187,8 @@ export async function recordUptimeEvents(
           status: event.status,
           response_time_ms: event.responseTimeMs ?? null,
           http_status_code: event.httpStatusCode ?? null,
-          checked_at: event.checkedAt.toISOString(),
-          ingested_at: ingestedAtIso,
+          checked_at: toClickHouseDateTime64(event.checkedAt),
+          ingested_at: ingestedAt,
         })),
         format: "JSONEachRow",
       });
