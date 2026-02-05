@@ -664,3 +664,109 @@ export async function xPendingInfo(
     };
   }
 }
+
+export interface ForceAckStalePelOptions {
+  consumerGroup: string;
+  /**
+   * Minimum idle time in milliseconds for a message to be force-ACKed.
+   * Messages idle longer than this are considered "stuck" and will be removed.
+   * Default: 1 hour (3600000ms)
+   */
+  minIdleMs: number;
+  /**
+   * Maximum number of messages to force-ACK in a single call.
+   * Prevents overwhelming Redis with bulk ACKs.
+   */
+  maxCount?: number;
+}
+
+/**
+ * Force-acknowledge PEL entries that have been stuck for too long.
+ *
+ * SAFETY MECHANISM:
+ * This is a last-resort cleanup for messages that are stuck in PEL indefinitely.
+ * Normal flow: messages are claimed via XAUTOCLAIM → processed → ACKed
+ * If a message repeatedly fails processing and never gets ACKed, it stays in PEL forever.
+ *
+ * This function:
+ * 1. Queries XPENDING for entries idle longer than minIdleMs
+ * 2. Force-ACKs them without processing
+ * 3. Logs the cleanup for audit
+ *
+ * USE SPARINGLY: This discards messages. Only use for very old entries (1+ hours).
+ * The publisher will re-enqueue the website on its next cycle anyway.
+ *
+ * @returns Number of messages force-ACKed
+ */
+export async function xForceAckStalePel(
+  options: ForceAckStalePelOptions,
+): Promise<number> {
+  // Mock in test environment
+  if (isTestEnv) {
+    return 0;
+  }
+
+  if (!client) {
+    console.warn("Redis client not initialized, cannot force-ack stale PEL");
+    return 0;
+  }
+
+  const maxCount = options.maxCount ?? 100;
+
+  try {
+    // CRITICAL: Ensure consumer group exists before querying
+    await ensureConsumerGroup(options.consumerGroup);
+
+    // Query XPENDING for detailed entries to find very old ones
+    // XPENDING key group start end count
+    const pendingEntries = (await client.sendCommand([
+      "XPENDING",
+      STREAM_NAME,
+      options.consumerGroup,
+      "-",
+      "+",
+      String(maxCount),
+    ])) as Array<[string, string, number, number]> | null;
+
+    if (!pendingEntries || pendingEntries.length === 0) {
+      return 0;
+    }
+
+    // Filter entries older than minIdleMs
+    // XPENDING detailed format: [id, consumer, idleMs, deliveryCount]
+    const staleEntryIds: string[] = [];
+    for (const [id, , idleMs] of pendingEntries) {
+      if (idleMs >= options.minIdleMs) {
+        staleEntryIds.push(id);
+      }
+    }
+
+    if (staleEntryIds.length === 0) {
+      return 0;
+    }
+
+    // Force-ACK the stale entries
+    const ackResults = await Promise.allSettled(
+      staleEntryIds.map((msgId) =>
+        client!.xAck(STREAM_NAME, options.consumerGroup, msgId),
+      ),
+    );
+
+    const ackedCount = ackResults.filter(
+      (r) => r.status === "fulfilled" && r.value > 0,
+    ).length;
+
+    if (ackedCount > 0) {
+      const idleMinutes = Math.floor(options.minIdleMs / 60_000);
+      console.warn(
+        `[xForceAckStalePel] Force-ACKed ${ackedCount} message(s) idle for >${idleMinutes} minutes`,
+      );
+    }
+
+    return ackedCount;
+  } catch (error) {
+    // Log error but don't throw - force-ACK is best-effort cleanup
+    console.error("[xForceAckStalePel] Failed to force-ack stale PEL:", error);
+    return 0;
+  }
+}

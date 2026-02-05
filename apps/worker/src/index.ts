@@ -9,6 +9,7 @@ import {
   xReadGroup,
   xAutoClaimStale,
   xPendingInfo,
+  xForceAckStalePel,
 } from "@repo/streams";
 import { prismaClient } from "@repo/store";
 import axios from "axios";
@@ -99,8 +100,16 @@ async function startWorker() {
   // - fresh messages
   // - reclaimed (PEL) messages
   // - partial batches (even if some messages failed HTTP checks)
+  let writeSuccessCount = 0;
   function markWriteSuccess(): void {
     lastSuccessfulWriteAt = Date.now();
+    writeSuccessCount++;
+    // Log every 10 successful writes for debugging without spam
+    if (writeSuccessCount === 1 || writeSuccessCount % 10 === 0) {
+      console.log(
+        `[Worker] Liveness: ClickHouse write #${writeSuccessCount} confirmed at ${new Date().toISOString()}`,
+      );
+    }
   }
 
   // PEL monitoring - track previous count to detect non-decreasing condition
@@ -115,6 +124,29 @@ async function startWorker() {
         const currentPelCount = pelInfo.pending;
 
         if (currentPelCount > 0) {
+          const oldestIdleMs = pelInfo.oldestIdleMs ?? 0;
+          const oldestIdleSeconds = Math.floor(oldestIdleMs / 1000);
+
+          // SAFETY MECHANISM: Force-clear messages stuck for > 1 hour
+          // These messages have failed processing repeatedly and will never succeed
+          // The publisher will re-enqueue the website on its next cycle
+          if (oldestIdleMs > 3_600_000) {
+            // 1 hour
+            console.warn(
+              `[Worker] PEL has message(s) idle for ${oldestIdleSeconds}s (>1 hour), force-clearing...`,
+            );
+            const clearedCount = await xForceAckStalePel({
+              consumerGroup: REGION_ID,
+              minIdleMs: 3_600_000, // 1 hour
+              maxCount: 50, // Clear up to 50 per cycle
+            });
+            if (clearedCount > 0) {
+              console.warn(
+                `[Worker] Force-cleared ${clearedCount} stuck message(s) from PEL`,
+              );
+            }
+          }
+
           // Check if PEL count is NOT decreasing
           if (currentPelCount >= previousPelCount) {
             // PEL is not decreasing - start tracking
@@ -123,8 +155,6 @@ async function startWorker() {
             }
 
             const timeNonDecreasing = Date.now() - pelNonDecreasingSince;
-            const oldestIdleMs = pelInfo.oldestIdleMs ?? 0;
-            const oldestIdleSeconds = Math.floor(oldestIdleMs / 1000);
 
             // CRITICAL: Only log if PEL reclaim ran, pending count did NOT decrease,
             // and condition persisted >30 minutes (1800s)
@@ -211,20 +241,34 @@ async function startWorker() {
     );
 
     // Validate websites before processing
+    // CRITICAL: Each validation is wrapped in try-catch to prevent PEL growth
+    // If Prisma fails (DB connection issues), message is treated as invalid and ACKed
+    // This prevents messages from being stuck in PEL indefinitely
     const validMessages: typeof messages = [];
     const invalidMessageIds: string[] = [];
 
     for (const message of messages) {
-      const website = await prismaClient.website.findUnique({
-        where: { id: message.event.id },
-      });
+      try {
+        const website = await prismaClient.website.findUnique({
+          where: { id: message.event.id },
+        });
 
-      if (!website || !website.isActive) {
+        if (!website || !website.isActive) {
+          invalidMessageIds.push(message.id);
+          continue;
+        }
+
+        validMessages.push(message);
+      } catch (error) {
+        // GUARDRAIL: Prisma failures must NOT cause PEL growth
+        // Treat validation failures as invalid - safe to ACK
+        // The publisher will re-enqueue active websites on the next cycle
+        console.error(
+          `[Worker] ${logPrefix}: Failed to validate website ${message.event.id}, treating as invalid:`,
+          error instanceof Error ? error.message : String(error),
+        );
         invalidMessageIds.push(message.id);
-        continue;
       }
-
-      validMessages.push(message);
     }
 
     // ACK invalid messages immediately
