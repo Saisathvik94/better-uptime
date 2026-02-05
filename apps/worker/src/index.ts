@@ -93,7 +93,16 @@ async function startWorker() {
   // WORKER SELF-LIVENESS WATCHDOG:
   // Track last successful ClickHouse write to detect worker stalls
   // Liveness signal must be updated whenever ClickHouse successfully accepts a batch
-  let lastSuccessfulWriteAt: number | null = null;
+  // CRITICAL: Initialize to Date.now() to prevent false warnings on startup
+  let lastSuccessfulWriteAt: number = Date.now();
+  // Separate tracker for main loop iterations - detects frozen worker loops
+  let lastLoopIterationAt: number = Date.now();
+
+  // Helper function to mark main loop is alive
+  // Called at the end of every loop iteration, even during idle periods
+  function markLoopAlive(): void {
+    lastLoopIterationAt = Date.now();
+  }
 
   // Helper function to mark successful ClickHouse write
   // MUST be called whenever ClickHouse successfully accepts a batch:
@@ -197,18 +206,26 @@ async function startWorker() {
   // LOG ONLY - never exit process (no self-DDoS via restarts)
   setInterval(
     () => {
-      if (lastSuccessfulWriteAt === null) {
-        // No writes yet - this is OK on startup
-        return;
+      const now = Date.now();
+      const timeSinceLastWrite = now - lastSuccessfulWriteAt;
+      const timeSinceLastWriteMinutes = Math.floor(timeSinceLastWrite / 60_000);
+      const timeSinceLastLoop = now - lastLoopIterationAt;
+      const timeSinceLastLoopMinutes = Math.floor(timeSinceLastLoop / 60_000);
+
+      // CRITICAL: Check if main loop is frozen (should iterate every few seconds)
+      // If loop hasn't run in 5 minutes, the worker is completely stuck
+      if (timeSinceLastLoop > 300_000) {
+        // 5 minutes
+        console.error(
+          `[Worker] CRITICAL: Main loop not responding for ${timeSinceLastLoopMinutes} minutes. Worker is frozen.`,
+        );
       }
 
-      const timeSinceLastWrite = Date.now() - lastSuccessfulWriteAt;
-      const timeSinceLastWriteMinutes = Math.floor(timeSinceLastWrite / 60_000);
-
-      // CRITICAL: Log if no writes for >15 minutes, but NEVER exit process
+      // CRITICAL: Log if no writes for >30 minutes, but NEVER exit process
+      // Increased from 15 to 30 minutes to reduce false positives
       // PM2 restarts must NOT be relied upon for correctness
-      if (timeSinceLastWrite > 900_000) {
-        // 15 minutes
+      if (timeSinceLastWrite > 1_800_000) {
+        // 30 minutes
         console.error(
           `[Worker] LIVENESS WARNING: No ClickHouse writes for ${timeSinceLastWriteMinutes} minutes. Worker may be stalled.`,
         );
@@ -420,6 +437,10 @@ async function startWorker() {
     // CRITICAL: No artificial delays - rely only on Redis BLOCK for backpressure
     // XREADGROUP with BLOCK: 1000 will handle server-side blocking
     // This prevents unnecessary CPU usage and allows immediate processing when messages arrive
+
+    // CRITICAL: Mark loop alive after each iteration
+    // This proves the worker is running even during idle periods with no messages
+    markLoopAlive();
   }
 }
 

@@ -20,10 +20,14 @@ export interface UptimeEventRecord {
 
 let client: ClickHouseClient | null = null;
 let schemaReadyPromise: Promise<void> | null = null;
+// Track when schema was last verified to implement cache TTL
+let schemaVerifiedAt: number | null = null;
 
 const CLICKHOUSE_SCHEMA_TIMEOUT_MS = 10_000;
 // Cap query wait so the status API never feels sluggish
 const CLICKHOUSE_QUERY_TIMEOUT_MS = 3_000;
+// Cache TTL for schema verification - re-verify ClickHouse connectivity periodically
+const SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
 
 /**
  * Convert a Date to ClickHouse DateTime64 format.
@@ -78,6 +82,12 @@ function getClient(): ClickHouseClient {
 }
 
 async function ensureSchema(): Promise<void> {
+  // Invalidate cache after TTL to periodically re-verify ClickHouse connectivity
+  // This ensures we detect if ClickHouse becomes unreachable after initial success
+  if (schemaVerifiedAt && Date.now() - schemaVerifiedAt > SCHEMA_CACHE_TTL_MS) {
+    schemaReadyPromise = null;
+  }
+
   if (schemaReadyPromise) {
     return schemaReadyPromise;
   }
@@ -120,10 +130,14 @@ async function ensureSchema(): Promise<void> {
       CLICKHOUSE_SCHEMA_TIMEOUT_MS,
       "ClickHouse ALTER TABLE",
     );
+
+    // Mark schema as verified after successful creation/verification
+    schemaVerifiedAt = Date.now();
   })().catch((error) => {
     // CRITICAL: Reset schemaReadyPromise on failure so subsequent calls can retry
     // Without this, a single failure would permanently block all ClickHouse operations
     schemaReadyPromise = null;
+    schemaVerifiedAt = null;
     throw error;
   });
 
