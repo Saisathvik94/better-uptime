@@ -7,7 +7,6 @@ import {
   MoreHorizontal,
   ExternalLink,
   Pause,
-  Play,
   Trash2,
   Settings,
 } from "lucide-react";
@@ -30,7 +29,6 @@ interface MonitorCardProps {
 export function MonitorCard({ website, onDelete }: MonitorCardProps) {
   const isUp = website.currentStatus?.status === "UP";
   const statusColor = isUp ? "bg-emerald-500" : "bg-red-500";
-  const statusLight = isUp ? "bg-emerald-500/20" : "bg-red-500/20";
 
   // Format checked date
   const checkedAt = website.currentStatus?.checkedAt

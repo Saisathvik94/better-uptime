@@ -2,7 +2,6 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import Link from "next/link";
 import { toast } from "sonner";
 import { Search, ChevronDown } from "lucide-react";
 import { trpc } from "@/lib/trpc";

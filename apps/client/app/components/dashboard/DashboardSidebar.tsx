@@ -14,10 +14,8 @@ import {
   Settings,
   Sun,
   LogOut,
-  User,
   ChevronDown,
 } from "lucide-react";
-import { useEffect, useState } from "react";
 import { useTheme } from "next-themes";
 import { Button } from "@/components/Button";
 import {
@@ -56,27 +54,7 @@ const NAV_ITEMS = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const [mounted, setMounted] = useState(false);
-
-  // Use state for user info, similar to Navigation component
-  const [user, setUser] = useState<{ name: string; email: string } | null>(
-    null,
-  );
-
-  useEffect(() => {
-    setMounted(true);
-    // Rough simulation of getting user data from storage or query
-    // In a real app this might come from a context or hook
-    const token = localStorage.getItem("token");
-    if (token) {
-      // Placeholder - in reality we might want to fetch user profile
-      // using the trpc query from a parent or context
-      setUser({ name: "User", email: "user@example.com" });
-    }
-  }, []);
-
-  // Avoid hydration mismatch
-  if (!mounted) return null;
+  const user = { name: "User", email: "user@example.com" };
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden md:flex w-64 flex-col border-r border-border/50 bg-[var(--sidebar-bg)] transition-all">
@@ -159,14 +137,14 @@ export function DashboardSidebar() {
           <DropdownMenuTrigger asChild>
             <button className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900/50 outline-none">
               <div className="size-8 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center text-xs font-semibold">
-                {user?.name?.charAt(0) || "U"}
+                {user.name.charAt(0)}
               </div>
               <div className="flex-1 overflow-hidden">
                 <p className="truncate text-sm font-medium text-foreground">
-                  {user?.name || "User"}
+                  {user.name}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {user?.email || ""}
+                  {user.email}
                 </p>
               </div>
               <ChevronDown className="size-4 text-muted-foreground" />
@@ -175,9 +153,9 @@ export function DashboardSidebar() {
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user?.name}</p>
+                <p className="text-sm font-medium leading-none">{user.name}</p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {user?.email}
+                  {user.email}
                 </p>
               </div>
             </DropdownMenuLabel>

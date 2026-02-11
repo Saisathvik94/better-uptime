@@ -23,8 +23,9 @@ export default function IncidentsPage() {
         Incidents Coming Soon
       </h1>
       <p className="max-w-[420px] text-muted-foreground mt-2">
-        We're working on a powerful incident management system. You'll be able
-        to track, manage, and resolve incidents directly from this dashboard.
+        We&apos;re working on a powerful incident management system. You&apos;ll
+        be able to track, manage, and resolve incidents directly from this
+        dashboard.
       </p>
     </div>
   );
