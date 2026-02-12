@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Search, ChevronDown, BarChart3 } from "lucide-react";
+import { Search, BarChart3 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Label } from "@/components/Label";
-import { MonitorCard } from "@/components/dashboard/MonitorCard";
 import { CreateMonitorDropdown } from "@/components/dashboard/CreateMonitorDropdown";
 import {
   AlertDialog,
@@ -21,6 +20,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/AlertDialog";
+import { StatusOverview } from "@/components/status/StatusOverview";
 
 function getErrorMessage(error: { message: string }): string {
   try {
@@ -174,40 +174,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Monitors List */}
-      <div className="space-y-4 px-6 relative">
-        <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground tracking-wider uppercase pl-2">
-          <div className="flex items-center gap-2">
-            <ChevronDown className="size-3" />
-            Monitors
-          </div>
-          {/* Optional: Add badge count here */}
-        </div>
-
-        <div className="space-y-2">
-          {websitesQuery.isLoading ? (
-            <div className="space-y-2">
-              {[1, 2, 3].map((i) => (
-                <div
-                  key={i}
-                  className="h-16 w-full animate-pulse rounded-xl bg-muted"
-                />
-              ))}
-            </div>
-          ) : websites.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center text-muted-foreground">
-              No monitors yet. Create one to start monitoring.
-            </div>
-          ) : (
-            websites.map((website) => (
-              <MonitorCard
-                key={website.websiteId}
-                website={website}
-                onDelete={(id) => setMonitorToDelete(id)}
-              />
-            ))
-          )}
-        </div>
+      {/* Status Overview (replaces monitors list) */}
+      <div className="relative">
+        <StatusOverview />
       </div>
 
       {/* Onboarding Section */}
