@@ -16,6 +16,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
+import { cx } from "@/lib/utils";
 
 // Tracker configuration - single source of truth
 // Changing CHECK_INTERVAL_MINUTES automatically adjusts all calculations
@@ -44,7 +45,11 @@ function getErrorMessage(error: { message: string }): string {
 
 type ViewMode = "per-check" | "per-day";
 
-export function StatusOverview() {
+interface StatusOverviewProps {
+  embedded?: boolean;
+}
+
+export function StatusOverview({ embedded = false }: StatusOverviewProps) {
   const router = useRouter();
 
   const [token] = useState<string | null>(() => {
@@ -576,17 +581,26 @@ export function StatusOverview() {
   }, [statusQuery.data, viewMode]);
 
   return (
-    <div className="relative mx-auto w-full max-w-5xl px-4 pt-28 pb-16">
-      {/* Left diagonal stripe border */}
-      <div
-        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-5 hidden w-5 lg:block"
-        aria-hidden="true"
-      />
-      {/* Right diagonal stripe border */}
-      <div
-        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-5 hidden w-5 lg:block"
-        aria-hidden="true"
-      />
+    <div
+      className={cx(
+        "relative mx-auto w-full max-w-5xl px-4",
+        embedded ? "py-0" : "pt-28 pb-16",
+      )}
+    >
+      {!embedded && (
+        <>
+          {/* Left diagonal stripe border */}
+          <div
+            className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-5 hidden w-5 lg:block"
+            aria-hidden="true"
+          />
+          {/* Right diagonal stripe border */}
+          <div
+            className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-5 hidden w-5 lg:block"
+            aria-hidden="true"
+          />
+        </>
+      )}
       {!token ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-card-foreground">
           <div className="text-sm text-muted-foreground">
@@ -599,40 +613,44 @@ export function StatusOverview() {
         </div>
       ) : null}
 
-      {/* Breadcrumb Navigation */}
-      <Breadcrumb className="mb-6">
-        <BreadcrumbList>
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/" className="flex items-center gap-1.5">
-                <Home className="size-4" />
-                <span>Home</span>
-              </Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbLink asChild>
-              <Link href="/dashboard">Dashboard</Link>
-            </BreadcrumbLink>
-          </BreadcrumbItem>
-          <BreadcrumbSeparator />
-          <BreadcrumbItem>
-            <BreadcrumbPage>Status</BreadcrumbPage>
-          </BreadcrumbItem>
-        </BreadcrumbList>
-      </Breadcrumb>
+      {!embedded && (
+        <>
+          {/* Breadcrumb Navigation */}
+          <Breadcrumb className="mb-6">
+            <BreadcrumbList>
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/" className="flex items-center gap-1.5">
+                    <Home className="size-4" />
+                    <span>Home</span>
+                  </Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbLink asChild>
+                  <Link href="/dashboard">Dashboard</Link>
+                </BreadcrumbLink>
+              </BreadcrumbItem>
+              <BreadcrumbSeparator />
+              <BreadcrumbItem>
+                <BreadcrumbPage>Status</BreadcrumbPage>
+              </BreadcrumbItem>
+            </BreadcrumbList>
+          </Breadcrumb>
 
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div className="space-y-1">
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">
-            Website Status
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Monitor the uptime status of your websites.
-          </p>
-        </div>
-      </div>
+          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+            <div className="space-y-1">
+              <h1 className="text-2xl font-semibold tracking-tight text-foreground">
+                Website Status
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Monitor the uptime status of your websites.
+              </p>
+            </div>
+          </div>
+        </>
+      )}
 
       <div className="mt-8 rounded-2xl border border-border bg-card text-card-foreground">
         <div className="border-b border-border px-6 py-4">

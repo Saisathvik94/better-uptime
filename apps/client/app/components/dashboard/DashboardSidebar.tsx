@@ -17,7 +17,6 @@ import {
 } from "lucide-react";
 import { useDashboardUser } from "@/lib/use-dashboard-user";
 import { Button } from "@/components/Button";
-import { trpc } from "@/lib/trpc";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -54,19 +53,6 @@ const NAV_ITEMS = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const user = useDashboardUser();
-
-  const statusQuery = trpc.website.status.useQuery(undefined, {
-    retry: false,
-    refetchInterval: 60_000,
-  });
-
-  const websites = statusQuery.data?.websites ?? [];
-  const upCount = websites.filter(
-    (website) => website.currentStatus?.status === "UP",
-  ).length;
-  const downCount = websites.filter(
-    (website) => website.currentStatus?.status === "DOWN",
-  ).length;
 
   return (
     <aside className="fixed inset-y-0 left-0 z-50 hidden md:flex w-64 flex-col border-r border-border/50 bg-(--sidebar-bg) transition-all overflow-hidden shrink-0">
@@ -122,40 +108,6 @@ export function DashboardSidebar() {
           <HelpCircle className="size-4" />
           Get Help
         </Link>
-
-        {/* Compact Status Overview */}
-        <div className="rounded-lg border border-border bg-card p-3 text-card-foreground">
-          <div className="mb-2 flex items-center justify-between gap-2">
-            <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-              Status Overview
-            </div>
-            <Button
-              asChild
-              variant="primary"
-              className="h-7 px-2 text-[11px] leading-none"
-            >
-              <Link href="/status">
-                <BarChart3 className="mr-1 size-3" aria-hidden />
-                <span>Open</span>
-              </Link>
-            </Button>
-          </div>
-          {statusQuery.isLoading ? (
-            <div className="flex items-center justify-between gap-2 text-[11px] text-muted-foreground">
-              <span className="h-5 w-10 animate-pulse rounded bg-muted" />
-              <span className="h-5 w-10 animate-pulse rounded bg-muted" />
-            </div>
-          ) : (
-            <div className="flex items-center justify-between gap-2 text-xs">
-              <div className="flex-1 rounded-md bg-muted px-2 py-1 text-center font-medium text-foreground">
-                {upCount} Up
-              </div>
-              <div className="flex-1 rounded-md bg-muted px-2 py-1 text-center font-medium text-foreground">
-                {downCount} Down
-              </div>
-            </div>
-          )}
-        </div>
       </div>
 
       {/* User Profile - shrink-0 so it stays visible at bottom */}

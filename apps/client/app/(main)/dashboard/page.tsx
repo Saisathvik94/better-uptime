@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Search, BarChart3 } from "lucide-react";
+import { Home, Search, BarChart3 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -21,6 +21,14 @@ import {
   AlertDialogTitle,
 } from "@/components/AlertDialog";
 import { StatusOverview } from "@/components/status/StatusOverview";
+import {
+  Breadcrumb,
+  BreadcrumbItem,
+  BreadcrumbLink,
+  BreadcrumbList,
+  BreadcrumbPage,
+  BreadcrumbSeparator,
+} from "@/components/ui/breadcrumb";
 
 function getErrorMessage(error: { message: string }): string {
   try {
@@ -106,6 +114,32 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-8 py-8">
+      {/* Breadcrumbs */}
+      <div className="px-6">
+        <Breadcrumb className="mb-4">
+          <BreadcrumbList>
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/" className="flex items-center gap-1.5">
+                  <Home className="size-4" />
+                  <span>Home</span>
+                </Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbLink asChild>
+                <Link href="/dashboard">Dashboard</Link>
+              </BreadcrumbLink>
+            </BreadcrumbItem>
+            <BreadcrumbSeparator />
+            <BreadcrumbItem>
+              <BreadcrumbPage>Monitor</BreadcrumbPage>
+            </BreadcrumbItem>
+          </BreadcrumbList>
+        </Breadcrumb>
+      </div>
+
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-6">
         <h1 className="text-3xl font-bold tracking-tight text-foreground">
@@ -125,7 +159,7 @@ export default function DashboardPage() {
           <Button asChild variant="secondary" className="shrink-0">
             <Link href="/status">
               <BarChart3 className="mr-2 size-4" aria-hidden />
-              Status
+              Monitor
             </Link>
           </Button>
         </div>
@@ -174,9 +208,9 @@ export default function DashboardPage() {
         </div>
       )}
 
-      {/* Status Overview (replaces monitors list) */}
-      <div className="relative">
-        <StatusOverview />
+      {/* Status Overview (embedded) */}
+      <div className="relative px-6">
+        <StatusOverview embedded />
       </div>
 
       {/* Onboarding Section */}
