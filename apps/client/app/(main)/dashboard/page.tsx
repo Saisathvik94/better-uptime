@@ -1,5 +1,6 @@
 "use client";
 
+import { Instrument_Serif } from "next/font/google";
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -41,6 +42,11 @@ function getErrorMessage(error: { message: string }): string {
   }
   return error.message;
 }
+
+const instrumentSerif = Instrument_Serif({
+  subsets: ["latin"],
+  weight: ["400"],
+});
 
 export default function DashboardPage() {
   const router = useRouter();
@@ -117,7 +123,9 @@ export default function DashboardPage() {
       {/* Page Header + Breadcrumbs */}
       <div className="px-6 space-y-2">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+          <h1
+            className={`${instrumentSerif.className} text-3xl font-bold tracking-tight text-foreground`}
+          >
             Monitors
           </h1>
           <div className="flex items-center gap-3 w-full sm:w-auto">

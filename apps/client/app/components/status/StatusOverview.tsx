@@ -587,20 +587,16 @@ export function StatusOverview({ embedded = false }: StatusOverviewProps) {
         embedded ? "w-full" : "mx-auto w-full max-w-5xl px-4 pt-28 pb-16",
       )}
     >
-      {!embedded && (
-        <>
-          {/* Left diagonal stripe border */}
-          <div
-            className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-5 hidden w-5 lg:block"
-            aria-hidden="true"
-          />
-          {/* Right diagonal stripe border */}
-          <div
-            className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-5 hidden w-5 lg:block"
-            aria-hidden="true"
-          />
-        </>
-      )}
+      {/* Left diagonal stripe border */}
+      <div
+        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-5 hidden w-5 lg:block"
+        aria-hidden="true"
+      />
+      {/* Right diagonal stripe border */}
+      <div
+        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-5 hidden w-5 lg:block"
+        aria-hidden="true"
+      />
       {!token ? (
         <div className="rounded-2xl border border-border bg-card p-6 text-card-foreground">
           <div className="text-sm text-muted-foreground">
