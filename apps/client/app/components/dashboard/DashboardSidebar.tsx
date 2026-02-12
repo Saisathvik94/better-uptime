@@ -129,10 +129,14 @@ export function DashboardSidebar() {
             <div className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               Status Overview
             </div>
-            <Button asChild size="xs" variant="primary">
+            <Button
+              asChild
+              variant="primary"
+              className="h-7 px-2 text-[11px] leading-none"
+            >
               <Link href="/status">
                 <BarChart3 className="mr-1 size-3" aria-hidden />
-                <span className="text-[11px]">Open</span>
+                <span>Open</span>
               </Link>
             </Button>
           </div>
