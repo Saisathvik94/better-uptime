@@ -28,7 +28,7 @@ interface MonitorCardProps {
 
 export function MonitorCard({ website, onDelete }: MonitorCardProps) {
   const isUp = website.currentStatus?.status === "UP";
-  const statusColor = isUp ? "bg-emerald-500" : "bg-red-500";
+  const statusColor = isUp ? "bg-status-up" : "bg-status-down";
 
   // Format checked date
   const checkedAt = website.currentStatus?.checkedAt
@@ -44,7 +44,7 @@ export function MonitorCard({ website, onDelete }: MonitorCardProps) {
     : "Never";
 
   return (
-    <div className="group relative flex items-center justify-between rounded-xl border border-border/50 bg-white p-4 shadow-sm transition-all hover:border-[var(--coral-accent)]/20 hover:shadow-md dark:bg-card">
+    <div className="group relative flex items-center justify-between rounded-xl border border-border bg-card p-4 shadow-sm transition-all hover:border-(--coral-accent)/20 hover:shadow-md">
       <div className="flex items-center gap-4">
         {/* Status Indicator */}
         <div className="relative flex size-3 items-center justify-center">
@@ -63,19 +63,13 @@ export function MonitorCard({ website, onDelete }: MonitorCardProps) {
           <Link
             href={website.websiteUrl}
             target="_blank"
-            className="font-medium text-foreground hover:underline hover:decoration-[var(--coral-accent)] hover:underline-offset-4"
+            className="font-medium text-foreground hover:underline hover:decoration-(--coral-accent) hover:underline-offset-4"
           >
             {website.websiteName ||
               website.websiteUrl.replace(/^https?:\/\//, "")}
           </Link>
           <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground">
-            <span
-              className={
-                isUp
-                  ? "text-emerald-600 dark:text-emerald-500"
-                  : "text-red-600 dark:text-red-500"
-              }
-            >
+            <span className={isUp ? "text-status-up" : "text-status-down"}>
               {isUp ? "Up" : "Down"}
             </span>
             <span>•</span>

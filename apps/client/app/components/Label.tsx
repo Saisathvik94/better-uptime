@@ -1,5 +1,3 @@
-// Tremor Label [v0.0.2]
-
 import * as LabelPrimitives from "@radix-ui/react-label";
 import React from "react";
 
@@ -18,18 +16,11 @@ const Label = React.forwardRef<
   <LabelPrimitives.Root
     ref={forwardedRef}
     className={cx(
-      // base
-      "text-sm leading-none",
-      // text color
-      "text-gray-900 dark:text-gray-50",
-      // disabled
-      {
-        "text-gray-400 dark:text-gray-600": disabled,
-      },
+      "text-sm leading-none text-foreground",
+      disabled && "text-muted-foreground",
       className,
     )}
     aria-disabled={disabled}
-    tremor-id="tremor-raw"
     {...props}
   />
 ));

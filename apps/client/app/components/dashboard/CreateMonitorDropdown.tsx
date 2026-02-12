@@ -20,7 +20,7 @@ export function CreateMonitorDropdown({
     <div className="flex items-center">
       <Button
         variant="primary"
-        className="rounded-r-none bg-[var(--coral-accent)] hover:bg-[var(--coral-accent)]/90 text-white border-r border-white/20"
+        className="rounded-r-none border-r border-white/20"
         onClick={onCreateClick}
       >
         <Plus className="mr-2 size-4" />
@@ -28,10 +28,7 @@ export function CreateMonitorDropdown({
       </Button>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            variant="primary"
-            className="rounded-l-none bg-[var(--coral-accent)] hover:bg-[var(--coral-accent)]/90 text-white px-2"
-          >
+          <Button variant="primary" className="rounded-l-none px-2">
             <ChevronDown className="size-4" />
             <span className="sr-only">More options</span>
           </Button>

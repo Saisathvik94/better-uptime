@@ -57,21 +57,24 @@ export function DashboardSidebar() {
   const user = { name: "User", email: "user@example.com" };
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 hidden md:flex w-64 flex-col border-r border-border/50 bg-[var(--sidebar-bg)] transition-all">
+    <aside className="fixed inset-y-0 left-0 z-50 hidden md:flex w-64 flex-col border-r border-border/50 bg-(--sidebar-bg) transition-all">
       {/* Header / Logo */}
       <div className="flex h-16 items-center px-4">
         <Link
           href="/"
           className="flex items-center gap-2 font-bold text-xl tracking-tight text-foreground"
         >
-          <Activity className="size-6 text-[var(--coral-accent)]" />
+          <Activity className="size-6 text-(--coral-accent)" />
           <span>NIGHTWATCH</span>
         </Link>
       </div>
 
       {/* Quick Create Button */}
       <div className="px-3 py-2">
-        <Button className="w-full justify-start gap-2 bg-[var(--coral-accent)] hover:bg-[var(--coral-accent)]/90 text-white font-medium shadow-sm hover:shadow-md transition-all">
+        <Button
+          variant="primary"
+          className="w-full justify-start gap-2 font-medium shadow-sm hover:shadow-md transition-all"
+        >
           <Plus className="size-4" />
           Quick Create
         </Button>
@@ -91,8 +94,8 @@ export function DashboardSidebar() {
               className={cx(
                 "flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium transition-colors",
                 isActive
-                  ? "bg-stone-200/50 text-foreground dark:bg-stone-800/50"
-                  : "text-muted-foreground hover:bg-stone-100 dark:hover:bg-stone-900/50 hover:text-foreground",
+                  ? "bg-sidebar-accent text-sidebar-accent-foreground"
+                  : "text-muted-foreground hover:bg-sidebar-accent/50 hover:text-sidebar-foreground",
               )}
             >
               <item.icon className="size-4" />
@@ -106,21 +109,21 @@ export function DashboardSidebar() {
       <div className="border-t border-border/50 p-3 space-y-1">
         <Link
           href="/dashboard/settings"
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-stone-100 dark:hover:bg-stone-900/50 hover:text-foreground"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         >
           <Settings className="size-4" />
           Settings
         </Link>
         <Link
           href="/help"
-          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-stone-100 dark:hover:bg-stone-900/50 hover:text-foreground"
+          className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         >
           <HelpCircle className="size-4" />
           Get Help
         </Link>
         <button
           onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-stone-100 dark:hover:bg-stone-900/50 hover:text-foreground"
+          className="flex w-full items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
         >
           {theme === "dark" ? (
             <Sun className="size-4" />
@@ -135,8 +138,8 @@ export function DashboardSidebar() {
       <div className="border-t border-border/50 p-3">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <button className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-stone-100 dark:hover:bg-stone-900/50 outline-none">
-              <div className="size-8 rounded-full bg-stone-200 dark:bg-stone-800 flex items-center justify-center text-xs font-semibold">
+            <button className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-sidebar-accent/50 outline-none">
+              <div className="size-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-accent-foreground">
                 {user.name.charAt(0)}
               </div>
               <div className="flex-1 overflow-hidden">

@@ -107,7 +107,7 @@ export default function DashboardPage() {
     <div className="space-y-8 py-8">
       {/* Page Header */}
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between px-6">
-        <h1 className="text-3xl font-bold tracking-tight text-[var(--foreground)]">
+        <h1 className="text-3xl font-bold tracking-tight text-foreground">
           Monitors
         </h1>
         <div className="flex items-center gap-3 w-full sm:w-auto">
@@ -115,7 +115,7 @@ export default function DashboardPage() {
             <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
             <Input
               placeholder="Search"
-              className="pl-9 bg-stone-100/50 border-stone-200 dark:bg-stone-900/50 dark:border-stone-800"
+              className="pl-9 bg-muted/50 border-border"
             />
           </div>
           <CreateMonitorDropdown
@@ -183,12 +183,12 @@ export default function DashboardPage() {
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-16 w-full animate-pulse rounded-xl bg-stone-100 dark:bg-stone-900"
+                  className="h-16 w-full animate-pulse rounded-xl bg-muted"
                 />
               ))}
             </div>
           ) : websites.length === 0 ? (
-            <div className="rounded-xl border border-dashed border-border p-12 text-center text-muted-foreground">
+            <div className="rounded-xl border border-dashed border-border bg-card/50 p-12 text-center text-muted-foreground">
               No monitors yet. Create one to start monitoring.
             </div>
           ) : (
@@ -205,17 +205,17 @@ export default function DashboardPage() {
 
       {/* Onboarding Section */}
       <div className="px-6">
-        <h3 className="mb-4 text-lg font-semibold text-[var(--foreground)]">
+        <h3 className="mb-4 text-lg font-semibold text-foreground">
           Get the most out of Better Stack
         </h3>
-        <div className="rounded-xl border border-[var(--coral-accent)]/20 bg-[var(--coral-accent)]/5 p-6 dark:bg-[var(--coral-accent)]/10">
+        <div className="rounded-xl border border-(--coral-accent)/20 bg-(--coral-accent)/5 p-6 dark:bg-(--coral-accent)/10">
           <div className="flex items-start justify-between">
             <div className="flex gap-4">
-              <div className="mt-1 flex size-8 items-center justify-center rounded-full border-2 border-[var(--coral-accent)] text-[var(--coral-accent)]">
-                <div className="size-2 rounded-full bg-[var(--coral-accent)]" />
+              <div className="mt-1 flex size-8 items-center justify-center rounded-full border-2 border-(--coral-accent) text-(--coral-accent)">
+                <div className="size-2 rounded-full bg-(--coral-accent)" />
               </div>
               <div>
-                <h4 className="font-semibold text-[var(--foreground)]">
+                <h4 className="font-semibold text-foreground">
                   Connect Slack or Microsoft Teams
                 </h4>
                 <p className="mt-1 max-w-xl text-sm text-muted-foreground">
@@ -224,7 +224,7 @@ export default function DashboardPage() {
                 </p>
                 <Button
                   variant="secondary"
-                  className="mt-4 bg-white dark:bg-black border-border shadow-sm hover:bg-stone-50"
+                  className="mt-4 bg-background border-border shadow-sm hover:bg-accent"
                 >
                   Integrations
                 </Button>
