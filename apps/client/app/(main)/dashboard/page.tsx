@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { Search, BarChart3 } from "lucide-react";
+import { Search, ChevronDown, BarChart3 } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
@@ -181,27 +181,22 @@ export default function DashboardPage() {
       )}
 
       {/* Monitors List */}
-      <div className="space-y-6 px-6 relative">
-        <div className="flex items-center justify-between">
+      <div className="space-y-4 px-6 relative">
+        <div className="flex items-center justify-between text-xs font-semibold text-muted-foreground tracking-wider uppercase pl-2">
           <div className="flex items-center gap-2">
-            <h2 className="text-sm font-semibold text-foreground tracking-wide uppercase">
-              Monitors
-            </h2>
-            {websites.length > 0 && (
-              <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                {websites.length}
-              </span>
-            )}
+            <ChevronDown className="size-3" />
+            Monitors
           </div>
+          {/* Optional: Add badge count here */}
         </div>
 
-        <div className="space-y-3">
+        <div className="space-y-2">
           {websitesQuery.isLoading ? (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {[1, 2, 3].map((i) => (
                 <div
                   key={i}
-                  className="h-24 w-full animate-pulse rounded-xl border border-border bg-card/50"
+                  className="h-16 w-full animate-pulse rounded-xl bg-muted"
                 />
               ))}
             </div>
