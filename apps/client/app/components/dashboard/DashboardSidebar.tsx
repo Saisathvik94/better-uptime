@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname } from "next/navigation";
 import { cx } from "@/lib/utils";
 import {
@@ -17,6 +18,7 @@ import {
   ChevronDown,
 } from "lucide-react";
 import { useTheme } from "next-themes";
+import { useDashboardUser } from "@/lib/use-dashboard-user";
 import { Button } from "@/components/Button";
 import {
   DropdownMenu,
@@ -54,12 +56,12 @@ const NAV_ITEMS = [
 export function DashboardSidebar() {
   const pathname = usePathname();
   const { theme, setTheme } = useTheme();
-  const user = { name: "User", email: "user@example.com" };
+  const user = useDashboardUser();
 
   return (
-    <aside className="fixed inset-y-0 left-0 z-50 hidden md:flex w-64 flex-col border-r border-border/50 bg-(--sidebar-bg) transition-all overflow-hidden flex-shrink-0">
+    <aside className="fixed inset-y-0 left-0 z-50 hidden md:flex w-64 flex-col border-r border-border/50 bg-(--sidebar-bg) transition-all overflow-hidden shrink-0">
       {/* Quick Create Button */}
-      <div className="flex-shrink-0 px-3 pt-4 pb-2">
+      <div className="shrink-0 px-3 pt-4 pb-2">
         <Button
           variant="primary"
           className="w-full justify-start gap-2 font-medium shadow-sm hover:shadow-md transition-all"
@@ -95,7 +97,7 @@ export function DashboardSidebar() {
       </nav>
 
       {/* Bottom Actions */}
-      <div className="flex-shrink-0 border-t border-border/50 p-3 space-y-1">
+      <div className="shrink-0 border-t border-border/50 p-3 space-y-1">
         <Link
           href="/dashboard/settings"
           className="flex items-center gap-3 rounded-md px-3 py-2 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/50 hover:text-sidebar-foreground"
@@ -123,8 +125,8 @@ export function DashboardSidebar() {
         </button>
       </div>
 
-      {/* User Profile - flex-shrink-0 so it stays visible at bottom */}
-      <div className="flex-shrink-0 border-t border-border/50 p-3 bg-(--sidebar-bg)">
+      {/* User Profile - shrink-0 so it stays visible at bottom */}
+      <div className="shrink-0 border-t border-border/50 p-3 bg-(--sidebar-bg)">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <button
@@ -132,26 +134,42 @@ export function DashboardSidebar() {
               className="flex w-full items-center gap-3 rounded-md p-2 text-left transition-colors hover:bg-sidebar-accent/50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
               aria-label="Open user menu"
             >
-              <div className="size-8 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-accent-foreground">
-                {user.name.charAt(0)}
-              </div>
-              <div className="flex-1 overflow-hidden">
+              {user.avatarUrl ? (
+                <div className="relative size-8 shrink-0 overflow-hidden rounded-full bg-sidebar-accent">
+                  <Image
+                    src={user.avatarUrl}
+                    alt=""
+                    width={32}
+                    height={32}
+                    className="object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="size-8 shrink-0 rounded-full bg-sidebar-accent flex items-center justify-center text-xs font-semibold text-sidebar-accent-foreground">
+                  {user.isLoading
+                    ? "…"
+                    : user.displayName.charAt(0).toUpperCase()}
+                </div>
+              )}
+              <div className="flex-1 min-w-0 overflow-hidden">
                 <p className="truncate text-sm font-medium text-foreground">
-                  {user.name}
+                  {user.isLoading ? "Loading…" : user.displayName}
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  {user.email}
+                  {user.displayEmail}
                 </p>
               </div>
-              <ChevronDown className="size-4 text-muted-foreground" />
+              <ChevronDown className="size-4 text-muted-foreground shrink-0" />
             </button>
           </DropdownMenuTrigger>
           <DropdownMenuContent className="w-56" align="end" forceMount>
             <DropdownMenuLabel className="font-normal">
               <div className="flex flex-col space-y-1">
-                <p className="text-sm font-medium leading-none">{user.name}</p>
+                <p className="text-sm font-medium leading-none">
+                  {user.displayName}
+                </p>
                 <p className="text-xs leading-none text-muted-foreground">
-                  {user.email}
+                  {user.displayEmail}
                 </p>
               </div>
             </DropdownMenuLabel>

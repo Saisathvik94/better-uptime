@@ -8,6 +8,16 @@ dotenv.config({
 });
 
 const nextConfig: NextConfig = {
+  // Allow user avatars (e.g. GitHub)
+  images: {
+    remotePatterns: [
+      {
+        protocol: "https",
+        hostname: "avatars.githubusercontent.com",
+        pathname: "/**",
+      },
+    ],
+  },
   // Enable MDX pages
   pageExtensions: ["js", "jsx", "md", "mdx", "ts", "tsx"],
   // Expose env vars from the shared config package

@@ -11,7 +11,7 @@ metadata:
 
 Review files for compliance with Web Interface Guidelines.
 
-## How It Works
+## How It Workscl
 
 1. Fetch the latest guidelines from the source URL below
 2. Read the specified files (or prompt user for files/pattern)
@@ -31,6 +31,7 @@ Use WebFetch to retrieve the latest rules. The fetched content contains all the 
 ## Usage
 
 When a user provides a file or pattern argument:
+
 1. Fetch guidelines from the source URL above
 2. Read the specified files
 3. Apply all rules from the fetched guidelines
