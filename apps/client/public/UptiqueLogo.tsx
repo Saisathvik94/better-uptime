@@ -10,7 +10,7 @@ export const UptiqueLogo = ({
     aria-hidden="true"
     fill="none"
     viewBox="0 0 200 44"
-    className={cx("text-foreground", className)}
+    className={cx("text-gray-900 dark:text-gray-50", className)}
     {...props}
   >
     <mask
