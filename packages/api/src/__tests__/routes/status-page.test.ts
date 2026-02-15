@@ -96,6 +96,52 @@ describe("Status Page Routes", () => {
     });
   });
 
+  describe("delete", () => {
+    it("deletes a status page owned by authenticated user", async () => {
+      if (!(await hasStatusSchema())) return;
+      const user = await createTestUser();
+      const website = await createTestWebsite(user.id);
+      const statusPage = await createTestStatusPage(user.id, [website.id], {
+        slug: `delete-${Date.now()}`,
+      });
+      await createTestStatusDomain(statusPage.id, {
+        hostname: `status.delete${Date.now()}.example.com`,
+      });
+
+      const caller = createAuthenticatedCaller(user.id);
+      const result = await caller.statusPage.delete({ id: statusPage.id });
+
+      expect(result.success).toBe(true);
+
+      const deletedStatusPage = await prismaClient.statusPage.findUnique({
+        where: { id: statusPage.id },
+      });
+      expect(deletedStatusPage).toBeNull();
+
+      const deletedDomain = await prismaClient.statusPageDomain.findUnique({
+        where: { statusPageId: statusPage.id },
+      });
+      expect(deletedDomain).toBeNull();
+    });
+
+    it("rejects deleting a status page owned by another user", async () => {
+      if (!(await hasStatusSchema())) return;
+      const owner = await createTestUser();
+      const intruder = await createTestUser();
+      const website = await createTestWebsite(owner.id);
+      const statusPage = await createTestStatusPage(owner.id, [website.id], {
+        slug: `owner-delete-${Date.now()}`,
+      });
+
+      const caller = createAuthenticatedCaller(intruder.id);
+      await expect(
+        caller.statusPage.delete({
+          id: statusPage.id,
+        }),
+      ).rejects.toThrow(TRPCError);
+    });
+  });
+
   describe("publicByHost", () => {
     it("returns public status page by verified hostname", async () => {
       if (!(await hasStatusSchema())) return;

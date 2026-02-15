@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { toast } from "sonner";
-import { ArrowLeft, Loader2, ShieldCheck } from "lucide-react";
+import { ArrowLeft, Check, Copy, Loader2, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/Button";
 import { Input } from "@/components/Input";
 import { Label } from "@/components/Label";
@@ -40,6 +40,7 @@ export default function NewStatusPage() {
     txtRecordName: string;
     txtRecordValue: string;
   } | null>(null);
+  const [copiedKey, setCopiedKey] = useState<string | null>(null);
 
   // Use monitor status query to get monitor list for selection.
   const websitesQuery = trpc.website.status.useQuery(undefined, {
@@ -76,6 +77,27 @@ export default function NewStatusPage() {
     setSelectedMonitors((prev) =>
       prev.includes(id) ? prev.filter((item) => item !== id) : [...prev, id],
     );
+  };
+
+  const copyDnsValue = async (
+    key: string,
+    value: string,
+    label: string,
+  ): Promise<void> => {
+    try {
+      await navigator.clipboard.writeText(value);
+      setCopiedKey(key);
+      toast.success("Copied to clipboard", {
+        description: `${label} copied successfully.`,
+      });
+      setTimeout(() => {
+        setCopiedKey((current) => (current === key ? null : current));
+      }, 1500);
+    } catch {
+      toast.error("Copy failed", {
+        description: "Clipboard access is unavailable. Please copy manually.",
+      });
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -247,26 +269,118 @@ export default function NewStatusPage() {
             <div className="space-y-4 text-sm">
               <div className="rounded-md border border-border bg-background p-3">
                 <p className="font-medium">CNAME record</p>
-                <p className="mt-1 text-muted-foreground break-all">
-                  <span className="font-medium text-foreground">Name:</span>{" "}
-                  {dnsInstructions.cnameRecordName}
-                </p>
-                <p className="text-muted-foreground break-all">
-                  <span className="font-medium text-foreground">Value:</span>{" "}
-                  {dnsInstructions.cnameRecordValue}
-                </p>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-muted-foreground break-all">
+                      <span className="font-medium text-foreground">Name:</span>{" "}
+                      {dnsInstructions.cnameRecordName}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="light"
+                      className="shrink-0 px-2 py-1 text-xs"
+                      onClick={() =>
+                        copyDnsValue(
+                          "cname-name",
+                          dnsInstructions.cnameRecordName,
+                          "CNAME name",
+                        )
+                      }
+                    >
+                      {copiedKey === "cname-name" ? (
+                        <Check className="mr-1 size-3.5" />
+                      ) : (
+                        <Copy className="mr-1 size-3.5" />
+                      )}
+                      {copiedKey === "cname-name" ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-muted-foreground break-all">
+                      <span className="font-medium text-foreground">
+                        Value:
+                      </span>{" "}
+                      {dnsInstructions.cnameRecordValue}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="light"
+                      className="shrink-0 px-2 py-1 text-xs"
+                      onClick={() =>
+                        copyDnsValue(
+                          "cname-value",
+                          dnsInstructions.cnameRecordValue,
+                          "CNAME value",
+                        )
+                      }
+                    >
+                      {copiedKey === "cname-value" ? (
+                        <Check className="mr-1 size-3.5" />
+                      ) : (
+                        <Copy className="mr-1 size-3.5" />
+                      )}
+                      {copiedKey === "cname-value" ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                </div>
               </div>
 
               <div className="rounded-md border border-border bg-background p-3">
                 <p className="font-medium">TXT record</p>
-                <p className="mt-1 text-muted-foreground break-all">
-                  <span className="font-medium text-foreground">Name:</span>{" "}
-                  {dnsInstructions.txtRecordName}
-                </p>
-                <p className="text-muted-foreground break-all">
-                  <span className="font-medium text-foreground">Value:</span>{" "}
-                  {dnsInstructions.txtRecordValue}
-                </p>
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-muted-foreground break-all">
+                      <span className="font-medium text-foreground">Name:</span>{" "}
+                      {dnsInstructions.txtRecordName}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="light"
+                      className="shrink-0 px-2 py-1 text-xs"
+                      onClick={() =>
+                        copyDnsValue(
+                          "txt-name",
+                          dnsInstructions.txtRecordName,
+                          "TXT name",
+                        )
+                      }
+                    >
+                      {copiedKey === "txt-name" ? (
+                        <Check className="mr-1 size-3.5" />
+                      ) : (
+                        <Copy className="mr-1 size-3.5" />
+                      )}
+                      {copiedKey === "txt-name" ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                  <div className="flex items-start justify-between gap-3">
+                    <p className="text-muted-foreground break-all">
+                      <span className="font-medium text-foreground">
+                        Value:
+                      </span>{" "}
+                      {dnsInstructions.txtRecordValue}
+                    </p>
+                    <Button
+                      type="button"
+                      variant="light"
+                      className="shrink-0 px-2 py-1 text-xs"
+                      onClick={() =>
+                        copyDnsValue(
+                          "txt-value",
+                          dnsInstructions.txtRecordValue,
+                          "TXT value",
+                        )
+                      }
+                    >
+                      {copiedKey === "txt-value" ? (
+                        <Check className="mr-1 size-3.5" />
+                      ) : (
+                        <Copy className="mr-1 size-3.5" />
+                      )}
+                      {copiedKey === "txt-value" ? "Copied" : "Copy"}
+                    </Button>
+                  </div>
+                </div>
               </div>
             </div>
 

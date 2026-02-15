@@ -3,6 +3,7 @@ import { prismaClient } from "@repo/store";
 import {
   createStatusPageInput,
   publicStatusPageByHostInput,
+  statusPageIdInput,
   statusPageListOutput,
   statusPageOutput,
   statusPagePublicOutput,
@@ -337,6 +338,32 @@ export const statusPageRouter = router({
       return {
         statusPages: statusPages.map(toStatusPageOutput),
       };
+    }),
+
+  delete: protectedProcedure
+    .input(statusPageIdInput)
+    .mutation(async ({ ctx, input }) => {
+      const existingStatusPage = await prismaClient.statusPage.findFirst({
+        where: {
+          id: input.id,
+          userId: ctx.user.userId,
+        },
+      });
+
+      if (!existingStatusPage) {
+        throw new TRPCError({
+          code: "NOT_FOUND",
+          message: "Status page not found",
+        });
+      }
+
+      await prismaClient.statusPage.delete({
+        where: {
+          id: input.id,
+        },
+      });
+
+      return { success: true };
     }),
 
   publicByHost: publicProcedure

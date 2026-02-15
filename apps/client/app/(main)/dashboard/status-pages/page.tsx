@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import Link from "next/link";
 import { toast } from "sonner";
 import {
@@ -8,7 +9,18 @@ import {
   Loader2,
   Plus,
   ShieldCheck,
+  Trash2,
 } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/AlertDialog";
 import { Button } from "@/components/Button";
 import { trpc } from "@/lib/trpc";
 
@@ -26,6 +38,10 @@ function getErrorMessage(error: { message: string }): string {
 
 export default function StatusPagesPage() {
   const utils = trpc.useUtils();
+  const [statusPageToDelete, setStatusPageToDelete] = useState<{
+    id: string;
+    name: string;
+  } | null>(null);
   const statusPagesQuery = trpc.statusPage.list.useQuery(undefined, {
     retry: false,
   });
@@ -46,6 +62,19 @@ export default function StatusPagesPage() {
     },
     onError: (error) => {
       toast.error("Could not verify domain", {
+        description: getErrorMessage(error),
+      });
+    },
+  });
+
+  const deleteStatusPage = trpc.statusPage.delete.useMutation({
+    onSuccess: async () => {
+      toast.success("Status page deleted");
+      setStatusPageToDelete(null);
+      await utils.statusPage.list.invalidate();
+    },
+    onError: (error) => {
+      toast.error("Could not delete status page", {
         description: getErrorMessage(error),
       });
     },
@@ -170,6 +199,32 @@ export default function StatusPagesPage() {
                     )}
                   </Button>
                 ) : null}
+
+                <Button
+                  type="button"
+                  variant="destructive"
+                  className="w-full"
+                  onClick={() =>
+                    setStatusPageToDelete({
+                      id: page.id,
+                      name: page.name,
+                    })
+                  }
+                  disabled={deleteStatusPage.isPending}
+                >
+                  {deleteStatusPage.isPending &&
+                  statusPageToDelete?.id === page.id ? (
+                    <>
+                      <Loader2 className="mr-2 size-4 animate-spin" />
+                      Deleting...
+                    </>
+                  ) : (
+                    <>
+                      <Trash2 className="mr-2 size-4" />
+                      Delete Status Page
+                    </>
+                  )}
+                </Button>
               </div>
             </div>
           ))
@@ -193,6 +248,41 @@ export default function StatusPagesPage() {
           <span className="mt-3 font-medium">Create another status page</span>
         </Link>
       </div>
+
+      <AlertDialog
+        open={Boolean(statusPageToDelete)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setStatusPageToDelete(null);
+          }
+        }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete status page?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes{" "}
+              <span className="font-medium text-foreground">
+                {statusPageToDelete?.name}
+              </span>{" "}
+              and its domain mapping. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() =>
+                statusPageToDelete &&
+                deleteStatusPage.mutate({ id: statusPageToDelete.id })
+              }
+              className="bg-destructive hover:bg-destructive/90"
+              disabled={deleteStatusPage.isPending}
+            >
+              {deleteStatusPage.isPending ? "Deleting..." : "Delete"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

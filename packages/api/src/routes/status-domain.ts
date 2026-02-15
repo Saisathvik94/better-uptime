@@ -1,4 +1,4 @@
-import { resolveCname, resolveTxt } from "node:dns/promises";
+import { Resolver, resolveCname, resolveTxt } from "node:dns/promises";
 import { TRPCError } from "@trpc/server";
 import { prismaClient } from "@repo/store";
 import {
@@ -19,6 +19,29 @@ function normalizeDnsValue(value: string): string {
   return value.trim().toLowerCase().replace(/\.$/, "");
 }
 
+const PUBLIC_DNS_RESOLVERS = ["1.1.1.1", "8.8.8.8"] as const;
+const dnsResolvers = PUBLIC_DNS_RESOLVERS.map((server) => {
+  const resolver = new Resolver();
+  resolver.setServers([server]);
+  return resolver;
+});
+
+function isRecoverableDnsError(error: unknown): boolean {
+  if (!error || typeof error !== "object" || !("code" in error)) {
+    return false;
+  }
+
+  const code = error.code;
+  return (
+    code === "ENODATA" ||
+    code === "ENOTFOUND" ||
+    code === "EAI_AGAIN" ||
+    code === "SERVFAIL" ||
+    code === "ETIMEOUT" ||
+    code === "ECONNREFUSED"
+  );
+}
+
 function getDnsRecords(hostname: string, verificationToken: string) {
   return {
     cnameRecordName: hostname,
@@ -29,44 +52,52 @@ function getDnsRecords(hostname: string, verificationToken: string) {
 }
 
 async function resolveTxtValues(hostname: string): Promise<string[]> {
-  try {
-    const records = await resolveTxt(hostname);
-    return records.flat().map((value) => value.trim());
-  } catch (error) {
-    // DNS propagation and missing records should be treated as non-fatal.
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      (error.code === "ENODATA" ||
-        error.code === "ENOTFOUND" ||
-        error.code === "EAI_AGAIN" ||
-        error.code === "SERVFAIL")
-    ) {
-      return [];
+  const values = new Set<string>();
+  const lookupAttempts = [
+    () => resolveTxt(hostname),
+    ...dnsResolvers.map((resolver) => () => resolver.resolveTxt(hostname)),
+  ];
+
+  for (const lookup of lookupAttempts) {
+    try {
+      const records = await lookup();
+      for (const value of records.flat()) {
+        values.add(value.trim());
+      }
+    } catch (error) {
+      // DNS propagation and transient resolver issues should be non-fatal.
+      if (isRecoverableDnsError(error)) {
+        continue;
+      }
+      throw error;
     }
-    throw error;
   }
+
+  return [...values];
 }
 
 async function resolveCnameValues(hostname: string): Promise<string[]> {
-  try {
-    const records = await resolveCname(hostname);
-    return records.map((value) => normalizeDnsValue(value));
-  } catch (error) {
-    if (
-      error &&
-      typeof error === "object" &&
-      "code" in error &&
-      (error.code === "ENODATA" ||
-        error.code === "ENOTFOUND" ||
-        error.code === "EAI_AGAIN" ||
-        error.code === "SERVFAIL")
-    ) {
-      return [];
+  const values = new Set<string>();
+  const lookupAttempts = [
+    () => resolveCname(hostname),
+    ...dnsResolvers.map((resolver) => () => resolver.resolveCname(hostname)),
+  ];
+
+  for (const lookup of lookupAttempts) {
+    try {
+      const records = await lookup();
+      for (const value of records) {
+        values.add(normalizeDnsValue(value));
+      }
+    } catch (error) {
+      if (isRecoverableDnsError(error)) {
+        continue;
+      }
+      throw error;
     }
-    throw error;
   }
+
+  return [...values];
 }
 
 function createVerificationToken(): string {
