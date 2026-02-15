@@ -13,7 +13,9 @@ export default function DashboardLayout({
       <div className="flex flex-1 flex-col min-w-0 md:ml-64">
         <DashboardMobileHeader />
         <main className="flex-1 transition-all pt-0">
-          <div className="mx-auto w-full max-w-7xl">{children}</div>
+          <div className="mx-auto w-full max-w-[90rem] px-8 lg:px-12">
+            {children}
+          </div>
         </main>
       </div>
     </div>

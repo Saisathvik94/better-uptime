@@ -113,7 +113,7 @@ export default function DashboardPage() {
   return (
     <div className="space-y-8 py-8">
       {/* Page Header + Breadcrumbs */}
-      <div className="px-6 space-y-2">
+      <div className="space-y-2 px-6 lg:px-8">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <h1
             className={`${instrumentSerif.className} text-4xl font-bold tracking-tight text-foreground`}
@@ -122,10 +122,10 @@ export default function DashboardPage() {
           </h1>
           <div className="flex items-center gap-3 w-full sm:w-auto">
             <div className="relative flex-1 sm:w-64">
-              <Search className="absolute left-2.5 top-2.5 size-4 text-muted-foreground" />
+              <Search className="absolute left-2.5 top-2.5 size-5 text-muted-foreground" />
               <Input
                 placeholder="Search"
-                className="pl-9 bg-muted/50 border-border"
+                className="pl-9 bg-muted/10 border-border"
               />
             </div>
             <CreateMonitorDropdown
@@ -160,7 +160,7 @@ export default function DashboardPage() {
 
       {/* Creation Form (Inline) */}
       {isCreating && (
-        <div className="mx-6 rounded-xl border border-border bg-card p-6 shadow-sm animate-in fade-in slide-in-from-top-4">
+        <div className="rounded-xl border border-border bg-card p-6 shadow-sm animate-in fade-in slide-in-from-top-4">
           <h2 className="mb-4 text-lg font-semibold">Create new monitor</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid gap-4 sm:grid-cols-2">
@@ -202,7 +202,7 @@ export default function DashboardPage() {
       )}
 
       {/* Status Overview (embedded) */}
-      <div className="relative px-6">
+      <div className="relative min-h-[70vh]">
         <StatusOverview embedded />
       </div>
 
