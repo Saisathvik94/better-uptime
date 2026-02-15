@@ -587,19 +587,25 @@ export function StatusOverview({ embedded = false }: StatusOverviewProps) {
     <div className="relative">
       {/* Left diagonal stripe border */}
       <div
-        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -left-5 hidden w-5 lg:block"
+        className={cx(
+          "diagonal-stripes pointer-events-none absolute -top-28 hidden w-5 lg:block",
+          embedded ? "bottom-0 left-0" : "-bottom-16 -left-5",
+        )}
         aria-hidden="true"
       />
       {/* Right diagonal stripe border */}
       <div
-        className="diagonal-stripes pointer-events-none absolute -top-28 -bottom-16 -right-5 hidden w-5 lg:block"
+        className={cx(
+          "diagonal-stripes pointer-events-none absolute -top-28 hidden w-5 lg:block",
+          embedded ? "bottom-0 right-0" : "-bottom-16 -right-5",
+        )}
         aria-hidden="true"
       />
 
       <div
         className={cx(
-          "mx-auto w-full max-w-5xl px-4",
-          embedded ? "" : "pt-28 pb-16",
+          "w-full",
+          embedded ? "px-6 lg:px-8" : "mx-auto max-w-5xl px-4 pt-28 pb-16",
         )}
       >
         {!token ? (
