@@ -4,13 +4,23 @@ import {
   websiteIdInput,
   websiteOutput,
   websiteListOutput,
+  websiteStatusInput,
   websiteStatusListOutput,
 } from "@repo/validators";
 import { protectedProcedure, router } from "../trpc.js";
 import { prismaClient } from "@repo/store";
 import { TRPCError } from "@trpc/server";
-import { getRecentStatusEvents } from "@repo/clickhouse";
+import {
+  getRecentStatusEvents,
+  getStatusEventsForLookbackHours,
+} from "@repo/clickhouse";
 import { xAddBulk } from "@repo/streams";
+
+const STATUS_EVENT_QUERY_CONFIG = {
+  PER_CHECK_LIMIT: 90,
+  // Fetch one extra day to ensure full-day coverage for the oldest rendered day.
+  PER_DAY_LOOKBACK_DAYS: 31,
+} as const;
 
 export const websiteRouter = router({
   register: protectedProcedure
@@ -184,9 +194,11 @@ export const websiteRouter = router({
   }),
 
   status: protectedProcedure
+    .input(websiteStatusInput.optional())
     .output(websiteStatusListOutput)
     .query(async (opts) => {
       const userId = opts.ctx.user.userId;
+      const viewMode = opts.input?.viewMode ?? "per-check";
 
       // 1. Get websites from Postgres (only active ones)
       const websites = await prismaClient.website.findMany({
@@ -206,13 +218,23 @@ export const websiteRouter = router({
       // Get website IDs
       const websiteIds = websites.map((w) => w.id);
 
-      // 2. Query ClickHouse for recent status events (last 90 checks per website).
+      // 2. Query ClickHouse for status events.
       // ClickHouse is the source of truth for status data.
       // If ClickHouse is not configured/available, still return the websites with
       // empty statusPoints so the UI can render the collection.
       let statusEvents: Awaited<ReturnType<typeof getRecentStatusEvents>> = [];
       try {
-        statusEvents = await getRecentStatusEvents(websiteIds, 90);
+        if (viewMode === "per-day") {
+          statusEvents = await getStatusEventsForLookbackHours(
+            websiteIds,
+            STATUS_EVENT_QUERY_CONFIG.PER_DAY_LOOKBACK_DAYS * 24,
+          );
+        } else {
+          statusEvents = await getRecentStatusEvents(
+            websiteIds,
+            STATUS_EVENT_QUERY_CONFIG.PER_CHECK_LIMIT,
+          );
+        }
       } catch (error) {
         console.error(
           "[website.status] Failed to fetch status events from ClickHouse",

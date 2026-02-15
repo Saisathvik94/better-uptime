@@ -45,6 +45,13 @@ export const websiteIdInput = z.object({
 });
 
 /**
+ * Input validation for fetching website status data
+ */
+export const websiteStatusInput = z.object({
+  viewMode: z.enum(["per-check", "per-day"]).default("per-check"),
+});
+
+/**
  * Output validation for a single website
  */
 export const websiteOutput = z.object({
@@ -107,6 +114,7 @@ export const websiteStatusListOutput = z.object({
 export type CreateWebsiteInput = z.infer<typeof createWebsiteInput>;
 export type UpdateWebsiteInput = z.infer<typeof updateWebsiteInput>;
 export type WebsiteIdInput = z.infer<typeof websiteIdInput>;
+export type WebsiteStatusInput = z.infer<typeof websiteStatusInput>;
 export type WebsiteOutput = z.infer<typeof websiteOutput>;
 export type WebsiteListOutput = z.infer<typeof websiteListOutput>;
 export type WebsiteStatusPoint = z.infer<typeof websiteStatusPoint>;

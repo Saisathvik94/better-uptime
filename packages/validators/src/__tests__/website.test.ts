@@ -3,6 +3,7 @@ import {
   createWebsiteInput,
   updateWebsiteInput,
   websiteIdInput,
+  websiteStatusInput,
   websiteOutput,
   websiteListOutput,
 } from "../website/index.js";
@@ -169,6 +170,33 @@ describe("websiteIdInput", () => {
   it("should reject empty id", () => {
     const result = websiteIdInput.safeParse({
       id: "",
+    });
+    expect(result.success).toBe(false);
+  });
+});
+
+describe("websiteStatusInput", () => {
+  it("should default to per-check when viewMode is omitted", () => {
+    const result = websiteStatusInput.safeParse({});
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.viewMode).toBe("per-check");
+    }
+  });
+
+  it("should accept per-day view mode", () => {
+    const result = websiteStatusInput.safeParse({
+      viewMode: "per-day",
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.viewMode).toBe("per-day");
+    }
+  });
+
+  it("should reject invalid view modes", () => {
+    const result = websiteStatusInput.safeParse({
+      viewMode: "daily",
     });
     expect(result.success).toBe(false);
   });

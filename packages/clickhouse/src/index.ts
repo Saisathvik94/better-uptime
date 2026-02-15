@@ -23,6 +23,7 @@ let schemaReadyPromise: Promise<void> | null = null;
 let schemaVerifiedAt: number | null = null;
 const CLICKHOUSE_SCHEMA_TIMEOUT_MS = 10_000;
 const CLICKHOUSE_QUERY_TIMEOUT_MS = 3_000;
+const CLICKHOUSE_HISTORICAL_QUERY_TIMEOUT_MS = 10_000;
 const SCHEMA_CACHE_TTL_MS = 5 * 60 * 1000;
 
 function toClickHouseDateTime64(date: Date): string {
@@ -207,19 +208,19 @@ export function getClickhouseClient(): ClickHouseClient {
   return getClient();
 }
 
+type StatusEventRow = {
+  website_id: string;
+  region_id: string;
+  status: "UP" | "DOWN";
+  checked_at: string;
+  response_time_ms: number | null;
+  http_status_code: number | null;
+};
+
 export async function getRecentStatusEvents(
   websiteIds: string[],
   limit: number = 90,
-): Promise<
-  Array<{
-    website_id: string;
-    region_id: string;
-    status: "UP" | "DOWN";
-    checked_at: string;
-    response_time_ms: number | null;
-    http_status_code: number | null;
-  }>
-> {
+): Promise<StatusEventRow[]> {
   if (websiteIds.length === 0) {
     return [];
   }
@@ -267,14 +268,74 @@ export async function getRecentStatusEvents(
     return [];
   }
 
-  const data = (await result.json()) as Array<{
-    website_id: string;
-    region_id: string;
-    status: "UP" | "DOWN";
-    checked_at: string;
-    response_time_ms: number | null;
-    http_status_code: number | null;
-  }>;
+  const data = (await result.json()) as StatusEventRow[];
+
+  return data;
+}
+
+const MAX_LOOKBACK_HOURS = 24 * 365;
+
+export async function getStatusEventsForLookbackHours(
+  websiteIds: string[],
+  lookbackHours: number,
+): Promise<StatusEventRow[]> {
+  if (websiteIds.length === 0) {
+    return [];
+  }
+
+  if (!Number.isFinite(lookbackHours) || lookbackHours <= 0) {
+    throw new Error("lookbackHours must be a positive number");
+  }
+
+  const boundedLookbackHours = Math.min(
+    Math.floor(lookbackHours),
+    MAX_LOOKBACK_HOURS,
+  );
+
+  try {
+    await withTimeout(
+      ensureSchema(),
+      CLICKHOUSE_SCHEMA_TIMEOUT_MS,
+      "ClickHouse ensureSchema",
+    );
+  } catch {
+    return [];
+  }
+  const clickhouse = getClient();
+
+  const escapedIds = websiteIds
+    .map((id) => `'${id.replace(/'/g, "''")}'`)
+    .join(",");
+
+  const query = `
+    SELECT 
+      website_id,
+      region_id,
+      status,
+      checked_at,
+      response_time_ms,
+      http_status_code
+    FROM ${CLICKHOUSE_METRICS_TABLE}
+    WHERE website_id IN (${escapedIds})
+      AND checked_at >= now() - INTERVAL ${boundedLookbackHours} HOUR
+    ORDER BY website_id, checked_at DESC
+  `;
+
+  let result: Awaited<ReturnType<ClickHouseClient["query"]>>;
+  try {
+    result = await withTimeout(
+      clickhouse.query({
+        query,
+        format: "JSONEachRow",
+      }),
+      CLICKHOUSE_HISTORICAL_QUERY_TIMEOUT_MS,
+      "ClickHouse historical query",
+    );
+  } catch {
+    return [];
+  }
+
+  const data = (await result.json()) as StatusEventRow[];
 
   return data;
 }

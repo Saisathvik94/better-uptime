@@ -65,16 +65,19 @@ export function StatusOverview({ embedded = false }: StatusOverviewProps) {
     }
   }, [router, token]);
 
-  const statusQuery = trpc.website.status.useQuery(undefined, {
-    enabled: !!token,
-    retry: false,
-    // Keep data fresh without requiring hard refreshes.
-    refetchInterval: 60_000,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    staleTime: 0,
-    gcTime: 60_000,
-  });
+  const statusQuery = trpc.website.status.useQuery(
+    { viewMode },
+    {
+      enabled: !!token,
+      retry: false,
+      // Keep data fresh without requiring hard refreshes.
+      refetchInterval: 60_000,
+      refetchOnWindowFocus: true,
+      refetchOnReconnect: true,
+      staleTime: 0,
+      gcTime: 60_000,
+    },
+  );
 
   useEffect(() => {
     // Never toast error for empty data - these are NOT errors:
