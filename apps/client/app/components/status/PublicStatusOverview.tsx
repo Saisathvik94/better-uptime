@@ -4,8 +4,7 @@ import Link from "next/link";
 import { AlertCircle, ExternalLink } from "lucide-react";
 import { trpc } from "@/lib/trpc";
 import { Tracker, type TrackerBlockProps } from "@/components/Tracker";
-import ThemeSwitch from "../ThemeSwitch";
-
+import { ThemeToggler } from "../ui/ThemeToggler";
 interface PublicStatusOverviewProps {
   hostname: string;
 }
@@ -174,7 +173,7 @@ export function PublicStatusOverview({ hostname }: PublicStatusOverviewProps) {
               </p>
             </div>
             <div>
-              <ThemeSwitch />
+              <ThemeToggler />
             </div>
           </div>
 
