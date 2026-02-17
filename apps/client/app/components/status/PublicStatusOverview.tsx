@@ -141,95 +141,97 @@ export function PublicStatusOverview({ hostname }: PublicStatusOverviewProps) {
   }
 
   return (
-    <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-20">
-      {statusQuery.isLoading ? (
-        <div className="rounded-xl border border-border bg-card p-6 text-card-foreground">
-          Loading public status page...
-        </div>
-      ) : statusQuery.isError ? (
-        <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-destructive">
-          <div className="flex items-center gap-2 text-base font-medium">
-            <AlertCircle className="size-4" />
-            Unable to load status page
+    <div className="relative">
+      <div className="absolute right-4 top-4 z-50">
+        <ThemeToggler className="rounded-full border border-border bg-card p-2 shadow-sm hover:bg-muted transition-colors" />
+      </div>
+      <div className="mx-auto w-full max-w-5xl px-4 pb-16 pt-20">
+        {statusQuery.isLoading ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-card-foreground">
+            Loading public status page...
           </div>
-          <p className="mt-2 text-sm">
-            {getErrorMessage(statusQuery.error) ||
-              "This status page is unavailable."}
-          </p>
-        </div>
-      ) : !statusQuery.data ? (
-        <div className="rounded-xl border border-border bg-card p-6 text-card-foreground">
-          Status page not found.
-        </div>
-      ) : (
-        <>
-          <div className="mb-8 rounded-2xl border border-border bg-card p-6 text-card-foreground flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold tracking-tight">
-                {statusQuery.data.statusPage.name}
-              </h1>
-              <p className="mt-2 text-sm text-muted-foreground">
-                Live status for <span className="font-medium">{hostname}</span>
-              </p>
+        ) : statusQuery.isError ? (
+          <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-6 text-destructive">
+            <div className="flex items-center gap-2 text-base font-medium">
+              <AlertCircle className="size-4" />
+              Unable to load status page
             </div>
-            <div>
-              <ThemeToggler />
-            </div>
+            <p className="mt-2 text-sm">
+              {getErrorMessage(statusQuery.error) ||
+                "This status page is unavailable."}
+            </p>
           </div>
-
-          <div className="space-y-6">
-            {statusQuery.data.statusPage.websites.length === 0 ? (
-              <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                No monitors are currently attached to this status page.
+        ) : !statusQuery.data ? (
+          <div className="rounded-xl border border-border bg-card p-6 text-card-foreground">
+            Status page not found.
+          </div>
+        ) : (
+          <>
+            <div className="mb-8 rounded-2xl border border-border bg-card p-6 text-card-foreground flex items-center justify-between">
+              <div>
+                <h1 className="text-3xl font-bold tracking-tight">
+                  {statusQuery.data.statusPage.name}
+                </h1>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  Live status for <span className="font-medium">{hostname}</span>
+                </p>
               </div>
-            ) : (
-              statusQuery.data.statusPage.websites.map((website) => (
-                <div
-                  key={website.websiteId}
-                  className="rounded-xl border border-border bg-card p-5 text-card-foreground"
-                >
-                  <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="min-w-0 flex-1">
-                      <div className="truncate text-base font-semibold">
-                        {website.websiteName || website.websiteUrl}
-                      </div>
-                      <a
-                        href={website.websiteUrl}
-                        target="_blank"
-                        rel="noreferrer"
-                        className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground underline underline-offset-4"
-                      >
-                        {website.websiteUrl}
-                        <ExternalLink className="size-3" />
-                      </a>
-                    </div>
-                    <div className="flex-shrink-0 self-end sm:self-center">
-                      {renderStatusBadge(website.currentStatus)}
-                    </div>
-                  </div>
+            </div>
 
-                  <div className="mt-4 space-y-1">
-                    <p className="text-xs text-muted-foreground">
-                      Last 30 checks
-                    </p>
-                    <Tracker
-                      data={buildTrackerData(website.statusPoints)}
-                      hoverEffect={website.statusPoints.length > 0}
-                    />
-                  </div>
+            <div className="space-y-6">
+              {statusQuery.data.statusPage.websites.length === 0 ? (
+                <div className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                  No monitors are currently attached to this status page.
                 </div>
-              ))
-            )}
-          </div>
+              ) : (
+                statusQuery.data.statusPage.websites.map((website) => (
+                  <div
+                    key={website.websiteId}
+                    className="rounded-xl border border-border bg-card p-5 text-card-foreground"
+                  >
+                    <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="truncate text-base font-semibold">
+                          {website.websiteName || website.websiteUrl}
+                        </div>
+                        <a
+                          href={website.websiteUrl}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 text-sm text-muted-foreground underline underline-offset-4"
+                        >
+                          {website.websiteUrl}
+                          <ExternalLink className="size-3" />
+                        </a>
+                      </div>
+                      <div className="flex-shrink-0 self-end sm:self-center">
+                        {renderStatusBadge(website.currentStatus)}
+                      </div>
+                    </div>
 
-          <div className="mt-10 text-center text-sm text-muted-foreground">
-            Powered by{" "}
-            <Link href="/" className="underline underline-offset-4">
-              Uptique
-            </Link>
-          </div>
-        </>
-      )}
+                    <div className="mt-4 space-y-1">
+                      <p className="text-xs text-muted-foreground">
+                        Last 30 checks
+                      </p>
+                      <Tracker
+                        data={buildTrackerData(website.statusPoints)}
+                        hoverEffect={website.statusPoints.length > 0}
+                      />
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+
+            <div className="mt-10 text-center text-sm text-muted-foreground">
+              Powered by{" "}
+              <Link href="/" className="underline underline-offset-4">
+                Uptique
+              </Link>
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
